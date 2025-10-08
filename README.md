@@ -179,61 +179,6 @@ Detecção simples: remover gravidade, checar magnitude de aceleração (> ~3 m/
 
 Firmware: bufferiza dados em RAM e escreve no microSD a cada 1s; sincroniza hora via GPS; mantém Wi-Fi desligado durante surf; usa TP4056 + PCM/BMS 1S para proteção da bateria.
 
-### Função JS de detecção (exemplo)
-```javascript
-// detectManeuvers(samples, params)
-// samples: array [{timestamp, ax, ay, az, gx, gy, gz, lat, lon}]
-// retorna lista de eventos: [{timestmap, type, score}]
-function detectManeuvers(samples, params = {}) {
-  const RATE = params.rate || 100;
-  const ACC_THR = params.accThr || 3.0; // m/s^2
-  const GYRO_THR = params.gyrThr || 150.0; // deg/s
-  const MIN_SEP = (params.minSep || 0.5) * 1000; // ms
-
-  // helper
-  const mag = (x,y,z) => Math.sqrt(x*x + y*y + z*z);
-
-  const events = [];
-  let lastEventTs = -Infinity;
-
-  for (let i = 0; i < samples.length; i++) {
-    const s = samples[i];
-    // remove gravity approx: gravity vector magnitude ~9.80665
-    // assume ax,ay,az already in m/s^2; compute linear accel magnitude
-    const aMag = Math.max(0, Math.abs(mag(s.ax, s.ay, s.az) - 9.80665));
-    const gMag = mag(s.gx, s.gy, s.gz); // deg/s
-
-    let type = null;
-    let score = 0;
-    if (aMag > ACC_THR && gMag > GYRO_THR) {
-      type = 'manobra_composta';
-      score = aMag + gMag/100;
-    } else if (aMag > ACC_THR) {
-      type = 'impacto';
-      score = aMag;
-    } else if (gMag > GYRO_THR) {
-      type = 'rotacao';
-      score = gMag;
-    }
-
-    if (type) {
-      const now = s.timestamp;
-      if (now - lastEventTs > MIN_SEP) {
-        events.push({ timestamp: now, type, score });
-        lastEventTs = now;
-      }
-    }
-  }
-  return events;
-}
-```
-
-### Integração no React (o doc já tem o lugar para sessão)
-- Adicionar um botão “Detectar Manobras” na `SessionDetail` que chama `detectManeuvers(session.samples)` e renderiza a lista de eventos com timestamp e tipo.
-- Visualmente, marcar os eventos na sparkline (pequenas bolhas/linhas verticais) para fácil inspeção.
-
----
-
 ## Formato CSV definitivo recomendado
 **Header** (uma linha):
 ```

@@ -1,12 +1,8 @@
 import { useState } from 'react';
 import './index.css';
 import SessionDetail from './SessionDetails';
-import type { Sample } from './utils/detectManeuvers';
+import type { Session } from './types';
 
-export interface Session {
-  id: string;
-  samples: Sample[];
-}
 
 const fakeSessions: Session[] = [
   {

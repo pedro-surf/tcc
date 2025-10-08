@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { detectManeuvers } from '../utils/detectManeuvers';
+import { useState } from 'react';
+import { detectManeuvers } from './utils/detectManeuvers';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
+import type { Session, ManeuverEvent } from './types';
 
-export default function SessionDetail({ session }) {
-  const [events, setEvents] = useState([]);
+export default function SessionDetail({ session }: { session: Session }) {
+  const [events, setEvents] = useState<ManeuverEvent[]>([]);
 
   const handleDetect = () => {
     const ev = detectManeuvers(session.samples);
