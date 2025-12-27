@@ -1,56 +1,20 @@
-import { useState } from 'react';
-import './index.css';
-import SessionDetail from './SessionDetails';
-import type { Session } from './types';
-
-
-const fakeSessions: Session[] = [
-  {
-    id: 'S-20251008-001',
-    samples: Array.from({ length: 200 }, (_, i) => ({
-      timestamp: Date.now() + i * 10,
-      ax: Math.random() * 2 - 1,
-      ay: Math.random() * 2 - 1,
-      az: 9.8 + Math.random() * 0.5,
-      gx: Math.random() * 100 - 50,
-      gy: Math.random() * 100 - 50,
-      gz: Math.random() * 100 - 50,
-      lat: -28.5 + Math.random() * 0.01,
-      lon: -48.8 + Math.random() * 0.01,
-      fix: 1,
-      alt: 5 + Math.random() * 1,
-      sat: 7
-    }))
-  },
-  {
-    id: 'S-20251008-002',
-    samples: Array.from({ length: 150 }, (_, i) => ({
-      timestamp: Date.now() + i * 10,
-      ax: Math.random() * 2 - 1,
-      ay: Math.random() * 2 - 1,
-      az: 9.8 + Math.random() * 0.5,
-      gx: Math.random() * 100 - 50,
-      gy: Math.random() * 100 - 50,
-      gz: Math.random() * 100 - 50,
-      lat: -28.5 + Math.random() * 0.01,
-      lon: -48.8 + Math.random() * 0.01,
-      fix: 1,
-      alt: 5 + Math.random() * 1,
-      sat: 6
-    }))
-  }
-];
+import { useState } from "react";
+import "./index.css";
+import SessionDetail from "./SessionDetails";
+import type { Session } from "./types";
+import { loadCbor } from "./utils/loadCbor";
+import { fakeSessions } from "./utils/fakeSessions";
 
 function App() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Surf Log</h1>
+    <div className="app">
+      <h2>Surf Log {selectedSession ? `Session ${selectedSession.id}` : ""}</h2>
+      {selectedSession && <p>{selectedSession.samples.length} samples</p>}
 
       {!selectedSession && (
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Sessões Disponíveis</h2>
+        <div>
+          <h2>Sessões Disponíveis</h2>
           {fakeSessions.map((s) => (
             <button
               key={s.id}
@@ -62,18 +26,19 @@ function App() {
           ))}
         </div>
       )}
-
-      {selectedSession && (
-        <div>
-          <button
-            className="mb-2 px-3 py-1 bg-gray-300 rounded-md hover:bg-gray-400"
-            onClick={() => setSelectedSession(null)}
-          >
-            Voltar
-          </button>
-          <SessionDetail session={selectedSession} />
-        </div>
-      )}
+      <input
+        type="file"
+        accept=".cbor"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const samples = await loadCbor(file);
+          if (samples?.length) {
+            setSelectedSession({ id: `Imported-${Date.now()}`, samples });
+          }
+        }}
+      />
+      {selectedSession && <SessionDetail session={selectedSession} />}
     </div>
   );
 }
