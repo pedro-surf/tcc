@@ -9,8 +9,12 @@ function App() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   return (
     <div className="app">
-      <h2>Surf Log {selectedSession ? `Session ${selectedSession.id}` : ""}</h2>
-      {selectedSession && <p>{selectedSession.samples.length} samples</p>}
+      <h2>Surf Log</h2>
+      {selectedSession && (
+        <p>
+          Session {selectedSession.id} - {selectedSession.samples.length} samples
+        </p>
+      )}
 
       {!selectedSession && (
         <div>
@@ -34,7 +38,7 @@ function App() {
           if (!file) return;
           const samples = await loadCbor(file);
           if (samples?.length) {
-            setSelectedSession({ id: `Imported-${Date.now()}`, samples });
+            setSelectedSession({ id: `Imported-${file.name}`, samples });
           }
         }}
       />

@@ -66,17 +66,13 @@ export default function SessionDetail({ session }: { session: Session }) {
         <div style={{ width: "50%", height: 500, paddingTop: "32px" }}>
           <h3>Manuevers</h3>
           {events.length > 0 && (
-            <div className="mt-4">
-              <h2 className="text-lg font-medium">Manobras detectadas</h2>
-              <ul className="mt-2 space-y-1">
-                {events.map((e, i) => (
-                  <li key={i} className="text-sm text-gray-700">
-                    {new Date(e.timestamp).toLocaleTimeString()} → {e.type} (
-                    {e.score.toFixed(1)})
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ul>
+              {events.map((e, i) => (
+                <li key={i}>
+                  {e.timestamp}ms → {e.type} (Score: {e.score.toFixed(1)})
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
