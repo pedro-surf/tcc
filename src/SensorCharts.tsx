@@ -6,15 +6,15 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { Session, ManeuverEvent } from "./types";
+import type { Session } from "./types";
 import { useState } from "react";
 
 type SensorChartsProps = {
-  events: ManeuverEvent[];
   cursor?: number;
   setCursor: (value: number) => void;
   session: Session;
   sensors?: string[];
+  title?: string;
 };
 
 const COLORS = [
@@ -32,12 +32,14 @@ const SENSORS = ["ax", "ay", "az", "gx", "gy", "gz", "mx", "my", "mz"];
 
 export default function SensorCharts({
   setCursor,
+ // cursor,
   session,
+  title = 'Assinatura'
 }: SensorChartsProps) {
   const [sensors, setSensors] = useState(SENSORS);
   return (
     <div style={{ width: "100%", height: 500 }}>
-      <h3>Assinatura</h3>
+      <h3>{title}</h3>
       {SENSORS.map((s) => (
         <>
           <label key={s} style={{ marginRight: 8 }}>
@@ -65,7 +67,7 @@ export default function SensorCharts({
             }
           }}
         >
-          <XAxis dataKey="timestamp" />
+          <XAxis type="number" dataKey="timestamp" />
           <YAxis domain={["auto", "auto"]} />
           <Tooltip />
           {sensors.map((k, i) => (

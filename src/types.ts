@@ -30,5 +30,14 @@ export interface Sample {
   export interface Session {
     id: string;
     samples: Sample[];
+    results: ClassifierResult[];
+    intervalMs: number;
+    manuevers: ManeuverEvent[];
+    prediction: ClassifierResult;
   }
+
+  export interface ClassifierResult {
+    label: "Idle" | "Pop" | "Riding";
+    value: number;
+  };
   
