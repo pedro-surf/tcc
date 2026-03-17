@@ -41,15 +41,15 @@ export default function SessionDetail({
 
   const currentSample = session.samples[cursor];
   const magnitudeAcc = Math.sqrt(
-    currentSample.ax ** 2 + currentSample.ay ** 2 + currentSample.az ** 2
+    currentSample.ax ** 2 + currentSample.ay ** 2 + currentSample.az ** 2,
   );
   const magnitudeGyro = Math.sqrt(
-    currentSample.gx ** 2 + currentSample.gy ** 2 + currentSample.gz ** 2
+    currentSample.gx ** 2 + currentSample.gy ** 2 + currentSample.gz ** 2,
   );
   // const magnitudeMag = Math.sqrt(currentSample.mx ** 2 + currentSample.my ** 2 + currentSample.mz ** 2);
 
   return (
-    <div className="d-flex" style={{ flexDirection: "column", flex: 1 }}>
+    <div className="d-flex flex-clmn" style={{ flex: 1 }}>
       {!hideTimeline && (
         <>
           <div>
@@ -77,7 +77,7 @@ export default function SessionDetail({
           />
         </>
       )}
-      <Results prediction={session.prediction} />
+      <Results predictions={session.predictions} />
       <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
         <div style={{ width: "48%", minHeight: 500 }}>
           <SensorCharts session={session} setCursor={setCursor} />
@@ -87,13 +87,8 @@ export default function SessionDetail({
             <h3>Replay</h3>
             <Board3D sample={currentSample} />
 
-            <p>Magnitudes:</p>
-            <p>
-              <span>acelerômetro: {magnitudeAcc}</span>
-            </p>
-            <p>
-              <span>giroscópio: {magnitudeGyro}</span>
-            </p>
+            <p>acc: {magnitudeAcc}</p>
+            <p>gyr: {magnitudeGyro}</p>
           </div>
         )}
 
@@ -116,10 +111,14 @@ export default function SessionDetail({
   );
 }
 
-const Results = ({ prediction }: { prediction: Session["prediction"] }) => {
-  return (
-      <h3>
-        {prediction.label}: {(100 * prediction.value).toFixed(2)}%
-      </h3>
-  );
+const Results = ({
+  predictions = [],
+}: {
+  predictions: Session["predictions"];
+}) => {
+  return predictions.map((prediction) => (
+    <h3>
+      {prediction.label}: {(100 * prediction.value).toFixed(2)}%
+    </h3>
+  ));
 };

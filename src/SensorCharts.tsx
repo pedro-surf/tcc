@@ -34,7 +34,7 @@ export default function SensorCharts({
   setCursor,
  // cursor,
   session,
-  title = 'Assinatura'
+  title = 'Signature'
 }: SensorChartsProps) {
   const [sensors, setSensors] = useState(SENSORS);
   return (
@@ -79,12 +79,6 @@ export default function SensorCharts({
               strokeWidth={1.5}
             />
           ))}
-          {/* <Line
-            type="monotone"
-            dataKey={(s) => Math.sqrt(s.ax ** 2 + s.ay ** 2 + s.az ** 2)}
-            stroke="#2563eb"
-            dot={false}
-          /> */}
         </LineChart>
       </ResponsiveContainer>
     </div>

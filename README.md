@@ -101,16 +101,6 @@ Uma sessão de surf típica (2–4 h) fica confortável com 2000–3000 mAh se v
 
 Se o GPS ficar ligado o tempo inteiro, espere o consumo total acima; se você amostrar GPS só a 1 Hz (com IMU a 50–200 Hz), o impacto é mínimo e recomendável — GPS costuma precisar só de 1 Hz pra rota/velocidade aceitável.
 
-## ✅ Boas práticas para economizar bateria com GPS
-
-Sampling GPS a 1 Hz (ou menos, dependendo de quão preciso queres a rota).
-
-Desligar GPS entre sessões: ligar apenas quando a prancha detectar movimento inicial ou manualmente na praia antes de entrar no mar.
-
-Usar FIFO do IMU e escrever no SD em blocos (ex.: escrever a cada 0.5–1s) para reduzir picos.
-
-Evitar Wi-Fi transmitindo continuamente — só ligar para sincronizar em terra.
-
 ## ⚡ Proteção de bateria — BMS / PCM (explicação prática)
 
 BMS (Battery Management System) ou PCM (Protection Circuit Module) é um circuito que protege células Li-ion/LiPo contra:
@@ -134,22 +124,6 @@ Se usar 2 ou mais células em paralelo (p/ mais capacidade), a proteção mínim
 Para packs com células em série (mais tensão), sempre usar BMS com balanceamento.
 
 Checklist: módulo de carga (TP4056 ou módulo USB-C moderno), módulo PCM/BMS 1S (proteção contra over/discharge/short), fusível térmico opcional, e boas práticas de soldagem/isolamento.
-
-### ✅ Próximo: frontend (já iniciado)
-
-Criei no canvas o esqueleto React chamado “Surf Log — React MVP”. O que tem lá:
-
-Upload de CSV (para testar com os arquivos gerados pelo ESP32).
-
-Parser CSV simples e agrupamento por session_id.
-
-Lista de sessões e detalhes de uma sessão (sparkline da aceleração X, estatísticas básicas).
-
-Botão de “Sincronizar (Bluetooth)” placeholder — ponto onde mais tarde vamos implementar BLE sync (React Native ou Web Bluetooth).
-
-Se quiser que eu copie o projeto pra um repositório com instruções de instalação (create-react-app + Tailwind) eu também posso gerar os comandos e o package.json aqui mesmo.
-
-
 
 ## Detecção de Manobras — algoritmo e integração (JS)
 
@@ -179,91 +153,9 @@ Detecção simples: remover gravidade, checar magnitude de aceleração (> ~3 m/
 
 Firmware: bufferiza dados em RAM e escreve no microSD a cada 1s; sincroniza hora via GPS; mantém Wi-Fi desligado durante surf; usa TP4056 + PCM/BMS 1S para proteção da bateria.
 
-## Formato CSV definitivo recomendado
-**Header** (uma linha):
-```
-session_id,timestamp,lat,lon,ax,ay,az,gx,gy,gz,fix,alt,sat
-```
-**Campos e unidades**:
-- `session_id` — string identificadora (ex: "S-20251008-001")
-- `timestamp` — ms since Unix epoch (inteiro)
-- `lat, lon` — graus decimais (floats) ou empty se sem fix naquele instante
-- `ax,ay,az` — aceleração em **m/s^2** (float)
-- `gx,gy,gz` — giroscópio em **deg/s** (float)
-- `fix` — flag GPS fix (0/1)
-- `alt` — altitude em metros (float)
-- `sat` — número de satélites (inteiro)
-
 **Exemplo linha**:
 ```
 S-20251008-001,1696768200123,-28.5,-48.8,0.12,-0.03,9.71,0.3,1.2,-0.5,1,5.4,7
-```
-
-> Dica: para economizar espaço, escreve os dados IMU em BINÁRIO no SD e cria um índice CSV com timestamps de bloco. Mas CSV é ótimo pra debug e visualização inicial.
-
----
-
-## Pseudocódigo firmware ESP32 (Arduino-style)
-
-```cpp
-// Pseudocódigo para ESP32 + MPU + NEO-6M + microSD + Bateria 1S
-// Assumptions: IMU provides ax,ay,az (m/s^2) and gx,gy,gz (deg/s)
-
-#include <MPU9250.h>
-#include <TinyGPSPlus.h>
-#include <SD.h>
-#include <SPI.h>
-
-const int IMU_RATE = 100; // Hz
-const int GPS_RATE = 1; // Hz
-const unsigned long SD_FLUSH_MS = 1000; // write every 1s
-
-void setup() {
-  Serial.begin(115200);
-  setupIMU(); // I2C init, set sample rate, enable FIFO if available
-  setupGPS(); // Serial1 for NEO-6M
-  SD.begin(SD_CS_PIN);
-  openNewSessionFile(); // write CSV header
-  disableWiFi(); // keep WiFi off to save battery
-}
-
-void loop() {
-  unsigned long t0 = millis();
-  static unsigned long lastSDWrite = 0;
-  static buffer = [];
-
-  // read IMU at IMU_RATE using timer or delay
-  readIMUIntoSample(sample); // ax,ay,az,gx,gy,gz
-  sample.timestamp = epochMillis();
-
-  // read GPS if available (runs async on Serial), update last fix
-  if (gpsHasNew && (millis() - lastGpsSampleTs) > 1000) {
-    sample.lat = gps.lat;
-    sample.lon = gps.lon;
-    sample.fix = gps.fix;
-    lastGpsSampleTs = millis();
-  } else {
-    sample.lat = EMPTY;
-    sample.lon = EMPTY;
-    sample.fix = 0;
-  }
-
-  // push to RAM buffer (circular)
-  buffer.push(formatCsvLine(sample));
-
-  // periodically flush buffer to SD (every SD_FLUSH_MS)
-  if (millis() - lastSDWrite >= SD_FLUSH_MS) {
-    SDFile.appendLines(buffer);
-    buffer.clear();
-    lastSDWrite = millis();
-  }
-
-  // energy saving: if no movement for long time, consider light sleep and wake on IMU interrupt (advanced)
-  waitUntilNextIMUSample(t0, IMU_RATE);
-}
-
-// Helpers: epochMillis() -> sync RTC from GPS at session start or use millis()+offset
-// formatCsvLine(sample) -> create CSV line matching header
 ```
 
 ### Boas práticas do firmware
@@ -273,16 +165,4 @@ void loop() {
 - **Sincronizar relógio** com GPS no início da sessão pra timestamps reais.
 - **Implementar watchdog** e logs para detectar problemas.
 - **Testar limites**: simular longas sessões e checar integridade dos arquivos.
-
----
-
-## Checklist rápida para o hardware antes do primeiro teste em água
-- ESP32 com firmware de logging
-- MPU-6050/9250 configurado e testado em bancada
-- NEO-6M orientado com boa visão do céu (pro bench test)
-- microSD 8–16GB formatado
-- Bateria Li-ion 1S (2000–3000 mAh) + TP4056 + PCM/BMS 1S
-- Caixa impermeável e fixação
-- Cabos, conector de carga e proteção contra umidade
-
----
+- **Dica**: para economizar espaço, escreve os dados IMU em BINÁRIO no SD e cria um índice CSV com timestamps de bloco. Mas CSV é ótimo pra debug e visualização inicial.

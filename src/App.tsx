@@ -19,7 +19,7 @@ function App() {
       results,
       intervalMs,
       manuevers,
-      prediction,
+      predictions,
     } = await loadCbor(file);
     const payload = {
       id: `Imported-${file.name}`,
@@ -27,7 +27,7 @@ function App() {
       results,
       intervalMs,
       manuevers,
-      prediction,
+      predictions,
     };
     if (samples?.length) {
       if (selectedSession) {
@@ -38,49 +38,71 @@ function App() {
     }
   };
 
+  const handleSelectSession = (s: Session) => {
+    if (selectedSession) {
+      setSecondSelectedSession(s);
+      return;
+    }
+    setSelectedSession(s);
+  };
+
+  const handleClear = () => {
+    setSelectedSession(null);
+    setSecondSelectedSession(null);
+  };
+
   const hideInputs =
     (mode === "single" && selectedSession) ||
     (mode === "compare" && selectedSession && secondSelectedSession);
   return (
     <div className="app">
       <div className="d-flex">
-        <h2
-          style={{ marginRight: "12px" }}
-          onDoubleClick={() => setSelectedSession(null)}
-        >
+        <h2 style={{ marginRight: "12px" }} onClick={handleClear}>
           Surf Log
         </h2>
-        {selectedSession && (
+        {selectedSession && mode === "single" && (
           <span>
             Session {selectedSession.id} - {selectedSession.samples.length}{" "}
             samples
           </span>
         )}
-        <select
-          value={mode}
-          onChange={(sel) => setMode(sel.target.value as "single" | "compare")}
-        >
-          <option value="compare">Compare sample pair</option>
-          <option value="single">Analyse single sample</option>
-        </select>
       </div>
       {!hideInputs && (
         <>
-          <div className="d-flex">
-            <h2>Importar .cbor (Edge Impulse)</h2>
-            <input type="file" accept=".cbor" onChange={handleImportFile} />
+          <div className="d-flex flex-clmn">
+            <h2>Import CBOR file</h2>
+            <div>
+              <input type="file" accept=".cbor" onChange={handleImportFile} />
+            </div>
           </div>
-          <div className="d-flex">
-            <h2>Sessões geradas por IA</h2>
+          <div className="d-flex flex-clmn">
+            <h2>Mock sessions</h2>
             {fakeSessions.map((s) => (
-              <button key={s.id} onClick={() => setSelectedSession(s)}>
+              <button
+                className="mb-2"
+                key={s.id}
+                onClick={() => handleSelectSession(s)}
+              >
                 {s.id} ({s.samples.length} amostras)
               </button>
             ))}
-            <div className="d-flex">
+            <div className="d-flex flex-clmn">
+              <select
+                value={mode}
+                onChange={(sel) =>
+                  setMode(sel.target.value as "single" | "compare")
+                }
+              >
+                <option selected={mode === "compare"} value="compare">
+                  Compare sample pair
+                </option>
+                <option selected={mode === "single"} value="single">
+                  Analyse single sample
+                </option>
+              </select>
               {mode === "compare" && !secondSelectedSession && selectedSession
                 ? "Sample 1 ok. Select Sample 2"
-                : ""}{" "}
+                : ""}
             </div>
           </div>
         </>

@@ -6,7 +6,7 @@ import { detectManeuvers } from "./detectManeuvers";
 
 export async function loadCbor(file: File): Promise<{
   results: ClassifierResult[];
-  prediction: ClassifierResult;
+  predictions: ClassifierResult[];
   data: Sample[];
   intervalMs: number;
   manuevers: ManeuverEvent[];
@@ -42,7 +42,7 @@ export async function loadCbor(file: File): Promise<{
 
     return sample as Sample;
   });
-  const prediction = results.sort((a, b) => b.value - a.value)[0];
+  const predictions = results.sort((a, b) => b.value - a.value);
   const manuevers = detectManeuvers(data);
-  return { results, data, intervalMs, manuevers, prediction };
+  return { results, data, intervalMs, manuevers, predictions };
 }

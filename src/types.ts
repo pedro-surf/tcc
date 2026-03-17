@@ -33,7 +33,7 @@ export interface Sample {
     results: ClassifierResult[];
     intervalMs: number;
     manuevers: ManeuverEvent[];
-    prediction: ClassifierResult;
+    predictions: ClassifierResult[];
   }
 
   export interface ClassifierResult {

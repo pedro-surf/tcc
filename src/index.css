@@ -4,8 +4,8 @@
   font-weight: 400;
   width: 100%;
   color-scheme: light dark;
-  color: blue;
-  background-color: #242424;
+  color: black;
+  background-color: white;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -44,6 +44,14 @@ body {
 
 .d-flex {
   display: flex;
+}
+
+.flex-clmn {
+  flex-direction: column;
+}
+
+.mb-2 {
+  margin-bottom: 8px;
 }
 
 h1 {
