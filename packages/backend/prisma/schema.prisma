@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator pothos {
+  provider = "prisma-pothos-types"
+}
+
+generator pothosCrud {
+  provider = "prisma-generator-pothos-codegen"
+  // Optional: You can specify where the CRUD code goes
+  // output = "../src/generated/pothos-crud.ts" 
+}
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  bio       String?
+  avatarUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions  Session[]
+
+  followers Follower[] @relation("followers")
+  following Follower[] @relation("following")
+
+  likes     Like[]
+}
+
+model Follower {
+  id           String @id @default(uuid())
+
+  followerId   String
+  followingId  String
+
+  follower     User @relation("following", fields: [followerId], references: [id])
+  following    User @relation("followers", fields: [followingId], references: [id])
+
+  createdAt    DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+model Spot {
+  id         String   @id @default(uuid())
+  name       String
+  location   String
+  lat        Float
+  lng        Float
+  difficulty String?
+
+  createdAt  DateTime @default(now())
+
+  sessions   Session[]
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  userId      String
+  spotId      String
+
+  date        DateTime
+  durationMin Int
+
+  waveCount   Int?
+  maxWave     Float?
+  avgWave     Float?
+
+  notes       String?
+
+  createdAt   DateTime @default(now())
+
+  user        User @relation(fields: [userId], references: [id])
+  spot        Spot @relation(fields: [spotId], references: [id])
+
+  sensors     Sensor[]
+  likes       Like[]
+}
+
+model Sensor {
+  id          String   @id @default(uuid())
+  sessionId   String
+
+  type        String
+  data        Json
+  recordedAt  DateTime
+
+  createdAt   DateTime @default(now())
+
+  session     Session @relation(fields: [sessionId], references: [id])
+}
+
+model Like {
+  id        String @id @default(uuid())
+  userId    String
+  sessionId String
+
+  createdAt DateTime @default(now())
+
+  user      User    @relation(fields: [userId], references: [id])
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, sessionId])
+
+
+model Sample {
+  id        String   @id @default(uuid())
+  timestamp Float
+  ax        Float
+  ay        Float
+  az        Float
+  gx        Float
+  gy        Float
+  gz        Float
+  lat       Float?
+  lon       Float?
+  fix       Int?
+  alt       Float?
+  sat       Int?
+
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model ManeuverEvent {
+  id        String   @id @default(uuid())
+  timestamp Float
+  type      String
+  score     Float
+
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  createdAt DateTime @default(now())
+}}
