@@ -3,21 +3,17 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 generator client {
   provider = "prisma-client-js"
 }
 
 generator pothos {
   provider = "prisma-pothos-types"
-}
-
-generator pothosCrud {
-  provider = "prisma-generator-pothos-codegen"
-  // Optional: You can specify where the CRUD code goes
-  // output = "../src/generated/pothos-crud.ts" 
-}
-datasource db {
-  provider = "postgresql"
 }
 
 model User {
@@ -32,11 +28,16 @@ model User {
   updatedAt DateTime @updatedAt
 
   sessions  Session[]
+  ratings  SessionRating[]
 
   followers Follower[] @relation("followers")
   following Follower[] @relation("following")
 
   likes     Like[]
+  devices   Device[]
+  spotAccesses   SpotAccess[]
+  spotChecks   SpotCheck[]
+  accesses  UserAccess[]
 }
 
 model Follower {
@@ -56,50 +57,30 @@ model Follower {
 model Spot {
   id         String   @id @default(uuid())
   name       String
+  type       String
   location   String
+  secret     Boolean
   lat        Float
   lng        Float
   difficulty String?
 
   createdAt  DateTime @default(now())
 
-  sessions   Session[]
-}
-
-model Session {
-  id          String   @id @default(uuid())
-  userId      String
-  spotId      String
-
-  date        DateTime
-  durationMin Int
-
-  waveCount   Int?
-  maxWave     Float?
-  avgWave     Float?
-
-  notes       String?
-
-  createdAt   DateTime @default(now())
-
-  user        User @relation(fields: [userId], references: [id])
-  spot        Spot @relation(fields: [spotId], references: [id])
-
-  sensors     Sensor[]
-  likes       Like[]
+  sessions       Session[]
+  accesses       SpotAccess[]
+  checks         SpotCheck[]
+  competitions   SpotCompetition[]
+  data           SpotData[]
 }
 
 model Sensor {
   id          String   @id @default(uuid())
-  sessionId   String
-
   type        String
   data        Json
   recordedAt  DateTime
-
   createdAt   DateTime @default(now())
 
-  session     Session @relation(fields: [sessionId], references: [id])
+  sessionSensors SessionSensor[]
 }
 
 model Like {
@@ -113,6 +94,7 @@ model Like {
   session   Session @relation(fields: [sessionId], references: [id])
 
   @@unique([userId, sessionId])
+}
 
 
 model Sample {
@@ -146,4 +128,159 @@ model ManeuverEvent {
   session   Session @relation(fields: [sessionId], references: [id])
 
   createdAt DateTime @default(now())
-}}
+}
+
+model Board {
+  id        String   @id @default(uuid())
+  name      String
+  length    Float
+  width     Float
+  thickness Float
+  volume    Float?
+  createdAt DateTime @default(now())
+  sessions  Session[]
+}
+
+model SpotAccess {
+  id        String   @id @default(uuid())
+  spotId    String
+  userId    String
+  accessType String
+  createdAt DateTime @default(now())
+
+  spot      Spot @relation(fields: [spotId], references: [id])
+  user      User @relation(fields: [userId], references: [id])
+}
+
+model SpotCompetition {
+  id        String   @id @default(uuid())
+  spotId    String
+  name      String
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  spot      Spot @relation(fields: [spotId], references: [id])
+}
+
+model SpotCheck {
+  id        String   @id @default(uuid())
+  spotId    String
+  userId    String
+  conditions String
+  createdAt DateTime @default(now())
+
+  spot      Spot @relation(fields: [spotId], references: [id])
+  user      User @relation(fields: [userId], references: [id])
+
+  media SpotCheckMedia[]
+}
+
+model SpotCheckMedia {
+  id        String   @id @default(uuid())
+  spotCheckId String
+  mediaUrl  String
+  createdAt DateTime @default(now())
+
+  spotCheck SpotCheck @relation(fields: [spotCheckId], references: [id])
+}
+
+model SessionSensor {
+  id        String   @id @default(uuid())
+  sessionId String
+  sensorId  String
+  createdAt DateTime @default(now())
+
+  session   Session @relation(fields: [sessionId], references: [id])
+  sensor    Sensor  @relation(fields: [sensorId], references: [id])
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  userId      String
+  spotId      String
+  boardId     String?
+  wetsuitId   String?
+  date        DateTime
+  durationMin Int
+  waveCount   Int?
+  maxWave     Float?
+  avgWave     Float?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  user        User @relation(fields: [userId], references: [id])
+  spot        Spot @relation(fields: [spotId], references: [id])
+  board       Board? @relation(fields: [boardId], references: [id])
+  wetsuit     Wetsuit? @relation(fields: [wetsuitId], references: [id])
+
+  sessionSensors SessionSensor[]
+  likes       Like[]
+  sessionMedia SessionMedia[]
+  sessionRatings SessionRating[]
+  samples     Sample[]
+  manuevers   ManeuverEvent[]
+}
+
+model SessionMedia {
+  id        String   @id @default(uuid())
+  sessionId String
+  mediaUrl  String
+  createdAt DateTime @default(now())
+
+  session   Session @relation(fields: [sessionId], references: [id])
+}
+
+model SessionRating {
+  id        String   @id @default(uuid())
+  sessionId String
+  rating    Int
+  comments  String?
+  creatorId String
+  surfed    Boolean
+  createdAt DateTime @default(now())
+
+  session   Session @relation(fields: [sessionId], references: [id])
+  creator   User @relation(fields: [creatorId], references: [id])
+}
+
+model SpotData {
+  id        String   @id @default(uuid())
+  spotId    String
+  data      Json
+  createdAt DateTime @default(now())
+
+  spot      Spot @relation(fields: [spotId], references: [id])
+}
+
+model Wetsuit {
+  id        String   @id @default(uuid())
+  name      String
+  thickness Float
+  createdAt DateTime @default(now())
+  sessions  Session[]
+}
+
+model UserAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  accessType String
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+}
+
+model VisitorAccess {
+  id        String   @id @default(uuid())
+  visitorId String
+  accessType String
+  createdAt DateTime @default(now())
+}
+
+model Device {
+  id        String   @id @default(uuid())
+  type      String
+  createdBy    String?
+  createdAt DateTime @default(now())
+
+  creator      User? @relation(fields: [createdBy], references: [id])
+}

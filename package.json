@@ -3,11 +3,13 @@
   "private": true,
   "scripts": {
     "dev": "pnpm -F @thesis/* --parallel dev",
-    "db:generate": "pnpm -F @thesis/backend prisma generate",
+    "db:generate": "pnpm -F @thesis/backend generate",
     "gql:generate": "pnpm -F @thesis/frontend codegen",
     "generate": "pnpm db:generate && pnpm gql:generate"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
   }
 }

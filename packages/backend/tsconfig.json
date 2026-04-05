@@ -1,28 +1,30 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    // File Layout
-    // "rootDir": "./src",
-    // "outDir": "./dist",
-
-    // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
-    "target": "esnext",
-    "types": [],
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
-
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@graphql/*": ["src/graphql/*"]
+    },
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "types": ["node"],
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "lib": ["es2021"],
+    "strictPropertyInitialization": false,
+    "target": "ES2021",
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false, // 👈 Change this later when possible. Pothos generated CRUD has issues with undefined vs. null
+    // "exactOptionalPropertyTypes": true,
 
     // Style Options
     // "noImplicitReturns": true,
@@ -39,6 +41,6 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }
