@@ -1,6 +1,12 @@
-import { UserRef } from "../objects/User"
-import { SpotRef } from "../objects/Spot"
 import { createListQuery } from "../utils/createListQuery"
+import { loadGqlObjects } from "../utils/loadObjects"
 
-createListQuery('spot', SpotRef)
-createListQuery('user', UserRef)
+function registerAllQueries() {
+  loadGqlObjects(ref => {
+    const name = ref.modelName;
+    createListQuery(name, ref);
+  });
+}
+
+registerAllQueries();
+// createListQuery('spot', SpotRef)

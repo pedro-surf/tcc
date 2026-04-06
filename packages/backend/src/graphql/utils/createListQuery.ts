@@ -26,7 +26,7 @@ export function createListQuery<
   options?: ListQueryOptions<TArgs>
 ) {
   const fieldName = `${objectRef.name.toLowerCase()}s` // pluralize field
-
+  console.log(`Creating list query: ${fieldName} for model ${objectRef.modelName}`)
   builder.queryField(fieldName, (t) =>
     t.prismaField({
       type: [objectRef],
