@@ -43,3 +43,7 @@ Lastly, execute the migrations and start the server.
 ```bash
 pnpm db-create && pnpm dev
 ```
+
+## To-Dos:
+- Automation GQL: mutations; make queries name camel case
+- Check if n relationships load
