@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node -r tsconfig-paths/register src/server.ts",
     "build": "tsc",
-    "generate": "rm -rf ./src/graphql && prisma generate",
+    "generate": "prisma generate",
     "create-db": "prisma migrate dev --name init"
   },
   "keywords": [],

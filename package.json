@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "pnpm -F @thesis/* --parallel dev",
     "db:generate": "pnpm -F @thesis/backend generate",
-    "gql:generate": "pnpm -F @thesis/frontend codegen",
+    "gql:generate": "pnpm -F @thesis/web codegen",
     "generate": "pnpm db:generate && pnpm gql:generate"
   },
   "devDependencies": {

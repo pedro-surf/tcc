@@ -1,6 +1,6 @@
 // src/modules/user/routes.ts
 import { Router } from "express";
-import { createCrud } from "../utils/crud";
+import { createCrud } from "./utils/crud";
 
 const router = Router();
 const userCrud = createCrud("user");

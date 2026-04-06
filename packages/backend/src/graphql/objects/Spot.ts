@@ -1,6 +1,6 @@
 import { builder } from '../builder'
 
-builder.prismaObject('Spot', {
+export const SpotRef = builder.prismaObject('Spot', {
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
