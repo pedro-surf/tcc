@@ -68,6 +68,7 @@ model Spot {
 
   sessions       Session[]
   accesses       SpotAccess[]
+  forecasts      SpotForecast[]
   checks         SpotCheck[]
   competitions   SpotCompetition[]
   data           SpotData[]
@@ -162,12 +163,37 @@ model SpotCompetition {
   spot      Spot @relation(fields: [spotId], references: [id])
 }
 
+model SpotForecast {
+  id          String   @id @default(uuid())
+  spotId      String
+  ideal       Boolean
+  score       Float?
+  userId      String
+  swell       Float
+  swellDir    Float
+  wind        Float
+  windDir     Float
+  period      Float?
+  energy      Float?
+  temp        Float?
+  gust        String?
+  power       String?
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  spot        Spot @relation(fields: [spotId], references: [id])
+  user        User @relation(fields: [userId], references: [id])
+
+  @@unique([spotId, userId, timestamp])
+}
+
 model SpotCheck {
-  id        String   @id @default(uuid())
-  spotId    String
-  userId    String
-  conditions String
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  spotId      String
+  userId      String
+  description String
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   spot      Spot @relation(fields: [spotId], references: [id])
   user      User @relation(fields: [userId], references: [id])
