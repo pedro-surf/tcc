@@ -52,6 +52,32 @@ pnpm create-db && pnpm dev
 
 ```
 mutation {
+  createLocation(
+    data: {
+      name: "SC - Farol de Santa Marta"
+      lat: -28.536006995392146
+      lng: -48.764753917685134
+      country: BRAZIL
+    }
+  ) {
+    id
+  }
+}
+
+mutation {
+  createLocation(
+    data: {
+      name: "SC - Florianopolis"
+      lat: -28.4347
+      lng: -48.7606
+      country: BRAZIL
+    }
+  ) {
+    id
+  }
+}
+
+mutation {
   createSpot(
     data: {
       name: "Ypuã"
@@ -60,6 +86,7 @@ mutation {
       waveType: BEACHIE
       bottomType: SAND
       country: BRAZIL
+      locationId: "3b961b2a-e4fa-4693-9cf4-83f4a6eb18fe"
     }
   ) {
     id
@@ -75,6 +102,7 @@ mutation {
       waveType: BEACHIE
       bottomType: SAND
       country: BRAZIL
+      locationId: "3b961b2a-e4fa-4693-9cf4-83f4a6eb18fe"
     }
   ) {
     id

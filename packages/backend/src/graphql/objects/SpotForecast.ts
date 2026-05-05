@@ -18,7 +18,8 @@ export const SpotForecastRef = builder.prismaObject('SpotForecast', {
     power: t.exposeString('power', { nullable: true }),
     timestamp: t.expose('timestamp', { type: 'DateTime', nullable: true }),
     createdAt: t.expose('createdAt', { type: 'DateTime' }),
-    spot: t.relation('spot'),
+    spot: t.relation('spot', { nullable: true }),
     user: t.relation('user'),
+    location: t.relation('location', { nullable: true }),
   }),
 });
