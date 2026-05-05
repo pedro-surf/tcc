@@ -5,7 +5,7 @@ export const SpotCheckRef = builder.prismaObject('SpotCheck', {
     id: t.exposeID('id'),
     spotId: t.exposeString('spotId'),
     userId: t.exposeString('userId'),
-    conditions: t.exposeString('conditions'),
+    description: t.exposeString('description'),
     createdAt: t.expose('createdAt', { type: 'DateTime' }),
     spot: t.relation('spot'),
     user: t.relation('user'),

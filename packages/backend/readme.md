@@ -41,9 +41,61 @@ docker-compose up -d
 Lastly, execute the migrations and start the server.
 
 ```bash
-pnpm db-create && pnpm dev
+pnpm create-db && pnpm dev
 ```
 
 ## To-Dos:
 - Automation GQL: mutations; make queries name camel case
 - Check if n relationships load
+
+# Seeding http://localhost:3000/graphql
+
+```
+mutation {
+  createSpot(
+    data: {
+      name: "Ypuã"
+      lat: -28.536006995392146
+      lng: -48.764753917685134
+      waveType: BEACHIE
+      bottomType: SAND
+      country: BRAZIL
+    }
+  ) {
+    id
+  }
+}
+
+mutation {
+  createSpot(
+    data: {
+      name: "Tereza"
+      lat: -28.5242626,
+      lng: -48.7633147,
+      waveType: BEACHIE
+      bottomType: SAND
+      country: BRAZIL
+    }
+  ) {
+    id
+  }
+}
+
+mutation {
+  bulkCreateSpotForecast(
+    data: [
+      {
+        spotId: "a7cf09d0-446b-4f21-aaa4-55a9046c6e95"
+        ideal: true
+        swell: 1.5
+        swellDir: 90
+        wind: 10
+        windDir: 190
+        userId: "ef169309-e640-4b81-800d-a3cc1caff033"
+      }
+    ]
+  ) {
+    ideal
+  }
+}
+```

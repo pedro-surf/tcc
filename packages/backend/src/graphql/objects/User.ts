@@ -5,6 +5,6 @@ export const UserRef = builder.prismaObject('User', {
     id: t.exposeID('id'),
     name: t.exposeString('name'),
     email: t.exposeString('email'),    
-    // createdAt: t.expose('createdAt', { type: 'DateTime' }),
+    createdAt: t.expose('createdAt', { type: 'DateTime' }),
   }),
 })

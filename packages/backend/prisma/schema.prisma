@@ -38,6 +38,7 @@ model User {
   spotAccesses   SpotAccess[]
   spotChecks   SpotCheck[]
   accesses  UserAccess[]
+  forecasts  SpotForecast[]
 }
 
 model Follower {
@@ -54,20 +55,58 @@ model Follower {
   @@unique([followerId, followingId])
 }
 
-model Spot {
-  id         String   @id @default(uuid())
-  name       String
-  type       String
-  location   String
-  secret     Boolean
-  lat        Float
-  lng        Float
-  difficulty String?
+enum WaveType {
+  BEACHIE
+  LEFT_POINT
+  RIGHT_POINT
+  A_FRAME
+  SLAB
+}
 
-  createdAt  DateTime @default(now())
+enum BottomType {
+  SAND
+  ROCK
+  REEF
+}
+
+enum Country {
+  BRAZIL
+  AUSTRALIA
+  PORTUGAL
+  CHILE
+  PERU
+}
+
+model Location {
+  id          String   @id @default(uuid())
+  name        String
+  country     Country
+  lat         Float?
+  lng         Float?
+
+  spots       Spot[]
+  forecasts   SpotForecast[]
+  createdAt   DateTime @default(now())
+}
+
+model Spot {
+  id          String   @id @default(uuid())
+  name        String
+  waveType    WaveType
+  bottomType  BottomType
+  country     Country
+  locationId  String
+  description String?
+  secret      Boolean?
+  lat         Float
+  lng         Float
+  difficulty  String?
+
+  createdAt   DateTime @default(now())
 
   sessions       Session[]
   accesses       SpotAccess[]
+  location       Location? @relation(fields: [locationId], references: [id])
   forecasts      SpotForecast[]
   checks         SpotCheck[]
   competitions   SpotCompetition[]
@@ -165,7 +204,8 @@ model SpotCompetition {
 
 model SpotForecast {
   id          String   @id @default(uuid())
-  spotId      String
+  spotId      String?
+  locationId  String?
   ideal       Boolean
   score       Float?
   userId      String
@@ -181,8 +221,9 @@ model SpotForecast {
   timestamp   DateTime @default(now())
   createdAt   DateTime @default(now())
 
-  spot        Spot @relation(fields: [spotId], references: [id])
+  spot        Spot? @relation(fields: [spotId], references: [id])
   user        User @relation(fields: [userId], references: [id])
+  location    Location? @relation(fields: [locationId], references: [id])
 
   @@unique([spotId, userId, timestamp])
 }

@@ -1,14 +1,10 @@
 import { createCreateMutation } from "../utils/createMutation";
 
 createCreateMutation(
-  'spot',
-  'Spot',
+  'location',
+  'Location',
   (t) => ({
     name: t.string({ required: true }),
-    difficulty: t.string(),
-    locationId: t.string({ required: true }),
-    waveType: t.field({ type: 'WaveTypeEnum', required: true }),
-    bottomType: t.field({ type: 'BottomTypeEnum', required: true }),
     country: t.field({ type: 'CountryEnum', required: true }),
     lat: t.float(),
     lng: t.float(),

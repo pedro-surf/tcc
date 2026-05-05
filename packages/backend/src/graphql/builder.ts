@@ -45,7 +45,6 @@ builder.scalarType('Json', {
     }
   },
 });
-
 builder.mutationType({})
 builder.queryType({});
 

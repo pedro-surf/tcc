@@ -3,6 +3,7 @@
 import { builder } from './builder'
 
 import './objects'
+import './enums'
 import './queries'
 import './mutations'
 
