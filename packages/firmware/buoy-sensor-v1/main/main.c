@@ -1,51 +1,43 @@
-#include "freertos/queue.h"
-#include "data_types.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
-QueueHandle_t sensor_queue;
+#include "esp_log.h"
 
-void app_main()
-{
-    i2c_master_init();
+#include "i2c_bus.h"
+#include "sensor.h"
 
-    sensor_init();
-    wifi_init();
-    storage_init();
+static const char *TAG = "main";
 
+#define SAMPLE_PERIOD_MS 100  /* 10 Hz — enough for bring-up logs */
 
-
-    sensor_queue = xQueueCreate(
-        128,                // número de mensagens
-        sizeof(sensor_data_t)
-    );
-
-    xTaskCreate(sensor_task, "sensor_task", 4096, NULL, 5, NULL);
-    xTaskCreate(comm_task, "comm_task", 4096, NULL, 4, NULL);
-}
-
-void sensor_task(void *arg)
+static void sensor_task(void *arg)
 {
     sensor_data_t data;
 
-    while (1)
-    {
+    while (1) {
         sensor_read_all(&data);
 
-        xQueueSend(sensor_queue, &data, 0);
+        ESP_LOGI(TAG,
+                 "t=%lld us | accel=%.2f %.2f %.2f g | gyro=%.1f %.1f %.1f dps | "
+                 "P=%.0f Pa T=%.1f C",
+                 (long long)data.timestamp,
+                 data.ax, data.ay, data.az,
+                 data.gx, data.gy, data.gz,
+                 data.pressure, data.temperature);
 
-        vTaskDelay(pdMS_TO_TICKS(10)); // 100 Hz
+        vTaskDelay(pdMS_TO_TICKS(SAMPLE_PERIOD_MS));
     }
 }
 
-void comm_task(void *arg)
+void app_main(void)
 {
-    sensor_data_t data;
+    ESP_LOGI(TAG, "buoy-sensor-v1 MVP: I2C + MPU9250 + BMP280");
 
-    while (1)
-    {
-        if (xQueueReceive(sensor_queue, &data, portMAX_DELAY))
-        {
-            send_wifi(data);
-            save_sd(data);
-        }
+    i2c_master_init();
+
+    if (!sensor_init()) {
+        ESP_LOGW(TAG, "One or more sensors failed init — continuing to read anyway");
     }
+
+    xTaskCreate(sensor_task, "sensor_task", 4096, NULL, 5, NULL);
 }

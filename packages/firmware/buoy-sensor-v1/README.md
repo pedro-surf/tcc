@@ -1,66 +1,46 @@
-# Arquitetura do Firmware (alto nível)
-![alt text](image.png)
-# Ports
-Typical pins for ESP32
+# buoy-sensor-v1 (MVP)
 
-SPI usually uses:
+ESP32 firmware for buoy IMU + barometer bring-up.
 
-MOSI = 23
-MISO = 19
-SCLK = 18
-CS   = 5
+## Pins
 
-I2C sensors:
+| Bus | Pins |
+|-----|------|
+| I2C | SDA=21, SCL=22 |
+| SPI (SD, later) | MOSI=23, MISO=19, SCLK=18, CS=5 |
 
-SDA = 21
-SCL = 22
+## What this MVP does
 
-No conflict.
+1. Init I2C master
+2. Init MPU9250 (accel + gyro; mag stubbed)
+3. Init BMP280 (compensated Pa / °C)
+4. Log samples over UART at 10 Hz
 
-# WIP - Implementation order
-## 1: Functional I2C
-## 2️ Read and sanity check acc
-## 3️ Read and sanity check gyr
-## 4️ Read and sanity check mag
-## 5️ Read and sanity check BMP280
-## 6️ Send via Wi-Fi
-## 7 Send via SD card
+Wi-Fi upload and SD logging exist under `components/wifi` and `components/storage` but are **not** linked from `main` yet.
 
+## Build
 
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-C61 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | --------- | -------- | -------- |
+```bash
+idf.py set-target esp32
+idf.py build
+idf.py -p PORT flash monitor
+```
 
-# Wi-Fi Station Example
+Sanity check on monitor: `WHO_AM_I=0x71` (MPU) and BMP `chip ID=0x58`, then non-zero accel (~1g on Z when flat) and plausible pressure (~100000 Pa).
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## Next (after serial looks good)
 
-This example shows how to use the Wi-Fi Station functionality of the Wi-Fi driver of ESP for connecting to an Access Point.
+1. AK8963 mag (I2C bypass + init)
+2. Wi-Fi: port got-IP wait from `station_example_main.c`, real SSID/URL
+3. Queue + optional SD CSV logging
+4. Drop leftover Wi-Fi example files when no longer needed
 
-## How to use example
+## Implementation order (original WIP)
 
-### Configure the project
-
-Open the project configuration menu (`idf.py menuconfig`).
-
-In the `Example Configuration` menu:
-
-* Set the Wi-Fi configuration.
-    * Set `WiFi SSID`.
-    * Set `WiFi Password`.
-
-Optional: If you need, change the other options according to your requirements.
-
-### Build and Flash
-
-Build the project and flash it to the board, then run the monitor tool to view the serial output:
-
-Run `idf.py -p PORT flash monitor` to build, flash and monitor the project.
-
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the Getting Started Guide for all the steps to configure and use the ESP-IDF to build projects.
-
-* [ESP-IDF Getting Started Guide on ESP32](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html)
-* [ESP-IDF Getting Started Guide on ESP32-S2](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html)
-* [ESP-IDF Getting Started Guide on ESP32-C3](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html)
-
+1. Functional I2C ✅
+2. Accel sanity ✅
+3. Gyro sanity ✅
+4. Mag — stubbed
+5. BMP280 ✅
+6. Wi-Fi — deferred
+7. SD — deferred

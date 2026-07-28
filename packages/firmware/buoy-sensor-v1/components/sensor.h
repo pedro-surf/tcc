@@ -1,7 +1,0 @@
-#ifndef SENSOR_H
-#define SENSOR_H
-
-void sensor_init();
-void sensor_read_all(sensor_data_t *data);
-
-#endif

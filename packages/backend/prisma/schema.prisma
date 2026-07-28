@@ -233,6 +233,7 @@ model SpotCheck {
   spotId      String
   userId      String
   description String
+  score       Float
   timestamp   DateTime @default(now())
   createdAt   DateTime @default(now())
 
