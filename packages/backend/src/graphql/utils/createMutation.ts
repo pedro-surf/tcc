@@ -1,5 +1,6 @@
 import PrismaTypes from '@pothos/plugin-prisma/generated';
 import { builder, prisma } from '../builder';
+import { requireUser, type Context } from '../context';
 
 const inputTypeCache = new Map<string, any>();
 
@@ -21,7 +22,7 @@ export function createCreateMutation<T extends keyof typeof prisma>(
   model: T,
   type: keyof PrismaTypes,
   inputFields: (t: any) => any,
-  { bulk = false } = {}
+  { bulk = false, auth = true }: { bulk?: boolean; auth?: boolean } = {}
 ) {
   const inputType = getInputType(type, inputFields);
 
@@ -34,7 +35,8 @@ export function createCreateMutation<T extends keyof typeof prisma>(
           required: true,
         }),
       },
-      resolve: (query, _parent, args) => {
+      resolve: (query, _parent, args, ctx: Context) => {
+        if (auth) requireUser(ctx);
         return (prisma[model] as any).create({
           ...query,
           data: args.data,
@@ -53,11 +55,12 @@ export function createCreateMutation<T extends keyof typeof prisma>(
             required: true,
           }),
         },
-        resolve: async (query, _parent, args) => {
+        resolve: async (query, _parent, args, ctx: Context) => {
+          if (auth) requireUser(ctx);
           await (prisma[model] as any).createMany({
             data: args.data,
           });
-          return args.data; // Return the created objects
+          return args.data;
         },
       })
     );

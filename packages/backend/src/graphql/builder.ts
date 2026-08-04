@@ -15,7 +15,11 @@ export const builder = new SchemaBuilder<{
     DateTime: { Input: string | Date; Output: string | Date };
     Json: { Input: any; Output: any };
   };
-  Context: {};
+  Context: {
+    ip: string;
+    req: import('node:http').IncomingMessage;
+    user: import('@prisma/client').User | null;
+  };
 }>({
   notStrict: "Pothos may not work correctly when strict mode is not enabled in tsconfig.json",
   plugins: [PrismaPlugin],

@@ -1,13 +1,27 @@
 import { useState } from 'react'
+import { useAuth } from '../../auth/AuthContext'
 import { CreateSpot } from './CreateSpot'
 import { SpotsList } from './SpotsList'
 import './SpotsPage.css'
 
 type View = 'list' | 'create'
 
-export function SpotsPage() {
+type Props = {
+  onRequireAuth?: () => void
+}
+
+export function SpotsPage({ onRequireAuth }: Props) {
+  const { isAuthenticated } = useAuth()
   const [view, setView] = useState<View>('list')
   const [listKey, setListKey] = useState(0)
+
+  const handleCreateClick = () => {
+    if (!isAuthenticated) {
+      onRequireAuth?.()
+      return
+    }
+    setView('create')
+  }
 
   if (view === 'create') {
     return (
@@ -31,9 +45,9 @@ export function SpotsPage() {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => setView('create')}
+            onClick={handleCreateClick}
           >
-            New spot
+            {isAuthenticated ? 'New spot' : 'Sign in to create'}
           </button>
         }
       />

@@ -78,6 +78,13 @@ body {
   color: #f8fafc;
 }
 
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
 .app-meta {
   color: #64748b;
   font-size: 0.95rem;

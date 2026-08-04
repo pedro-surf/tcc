@@ -5,10 +5,13 @@ import type { Session } from './types'
 import { loadCbor } from './utils/loadCbor'
 import { fakeSessions } from './utils/fakeSessions'
 import { SpotsPage } from './features/spots/SpotsPage'
+import { AuthPage } from './features/auth/AuthPage'
+import { useAuth } from './auth/AuthContext'
 
-type AppView = 'sessions' | 'spots'
+type AppView = 'sessions' | 'spots' | 'account'
 
 function App() {
+  const { user, isAuthenticated, logout } = useAuth()
   const [view, setView] = useState<AppView>('sessions')
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [secondSelectedSession, setSecondSelectedSession] =
@@ -80,7 +83,22 @@ function App() {
           >
             Spots
           </button>
+          <button
+            type="button"
+            className={`app-nav__btn${view === 'account' ? ' is-active' : ''}`}
+            onClick={() => setView('account')}
+          >
+            {isAuthenticated ? 'Account' : 'Sign in'}
+          </button>
         </nav>
+        {isAuthenticated && user ? (
+          <div className="app-user">
+            <span className="app-meta">{user.name}</span>
+            <button type="button" className="btn btn-secondary" onClick={logout}>
+              Sign out
+            </button>
+          </div>
+        ) : null}
         {view === 'sessions' && selectedSession && mode === 'single' && (
           <span className="app-meta">
             Session {selectedSession.id} - {selectedSession.samples.length}{' '}
@@ -89,8 +107,12 @@ function App() {
         )}
       </header>
 
-      {view === 'spots' ? (
-        <SpotsPage />
+      {view === 'account' ? (
+        <AuthPage onAuthenticated={() => setView('spots')} />
+      ) : view === 'spots' ? (
+        <SpotsPage
+          onRequireAuth={() => setView('account')}
+        />
       ) : (
         <>
           {!hideInputs && (

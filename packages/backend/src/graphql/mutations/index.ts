@@ -1,4 +1,5 @@
 import './createSpot'
-import './createUser'
 import './createLocation'
 import './createSpotForecast'
+import './register'
+import './login'

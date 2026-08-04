@@ -33,6 +33,12 @@ export type Scalars = {
   Json: { input: any; output: any; }
 };
 
+export type AuthPayload = {
+  __typename?: 'AuthPayload';
+  token: Scalars['String']['output'];
+  user: User;
+};
+
 export type Board = {
   __typename?: 'Board';
   createdAt: Scalars['DateTime']['output'];
@@ -116,7 +122,8 @@ export type Mutation = {
   createLocation: Location;
   createSpot: Spot;
   createSpotForecast: SpotForecast;
-  createUser: User;
+  login: AuthPayload;
+  register: AuthPayload;
 };
 
 
@@ -140,8 +147,16 @@ export type MutationCreateSpotForecastArgs = {
 };
 
 
-export type MutationCreateUserArgs = {
-  data: UserCreateInput;
+export type MutationLoginArgs = {
+  email: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+};
+
+
+export type MutationRegisterArgs = {
+  email: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  password: Scalars['String']['input'];
 };
 
 export type Query = {
@@ -151,6 +166,7 @@ export type Query = {
   likes: Array<Like>;
   locations: Array<Location>;
   maneuverevents: Array<ManeuverEvent>;
+  me?: Maybe<User>;
   samples: Array<Sample>;
   sensors: Array<Sensor>;
   sessionmedias: Array<SessionMedia>;
@@ -511,12 +527,6 @@ export type User = {
   name: Scalars['String']['output'];
 };
 
-export type UserCreateInput = {
-  email: Scalars['String']['input'];
-  name?: InputMaybe<Scalars['String']['input']>;
-  password: Scalars['String']['input'];
-};
-
 export const WaveTypeEnum = {
   AFrame: 'A_FRAME',
   Beachie: 'BEACHIE',
@@ -549,6 +559,23 @@ export type CreateSpotMutationVariables = Exact<{
 
 export type CreateSpotMutation = { __typename?: 'Mutation', createSpot: { __typename?: 'Spot', id: string, name: string, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, mapsUrl: string } };
 
+export type LoginMutationVariables = Exact<{
+  email: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+}>;
+
+
+export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'AuthPayload', token: string, user: { __typename?: 'User', id: string, name: string, email: string, createdAt: any } } };
+
+export type RegisterMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+  email: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+}>;
+
+
+export type RegisterMutation = { __typename?: 'Mutation', register: { __typename?: 'AuthPayload', token: string, user: { __typename?: 'User', id: string, name: string, email: string, createdAt: any } } };
+
 export type GetLocationsQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
@@ -557,6 +584,11 @@ export type GetLocationsQueryVariables = Exact<{
 
 
 export type GetLocationsQuery = { __typename?: 'Query', locations: Array<{ __typename?: 'Location', id: string, name: string, country: CountryEnum, lat?: number | null, lng?: number | null }> };
+
+export type MeQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, name: string, email: string, createdAt: any } | null };
 
 export type GetSpotsQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -625,6 +657,64 @@ export const useCreateSpotMutation = <
 
 useCreateSpotMutation.getKey = () => ['CreateSpot'];
 
+export const LoginDocument = /*#__PURE__*/ new TypedDocumentString(`
+    mutation Login($email: String!, $password: String!) {
+  login(email: $email, password: $password) {
+    token
+    user {
+      id
+      name
+      email
+      createdAt
+    }
+  }
+}
+    `);
+
+export const useLoginMutation = <
+      TError = unknown,
+      TContext = unknown
+    >(options?: UseMutationOptions<LoginMutation, TError, LoginMutationVariables, TContext>) => {
+    
+    return useMutation<LoginMutation, TError, LoginMutationVariables, TContext>(
+      {
+    mutationKey: ['Login'],
+    mutationFn: (variables?: LoginMutationVariables) => fetcher<LoginMutation, LoginMutationVariables>(LoginDocument, variables)(),
+    ...options
+  }
+    )};
+
+useLoginMutation.getKey = () => ['Login'];
+
+export const RegisterDocument = /*#__PURE__*/ new TypedDocumentString(`
+    mutation Register($name: String!, $email: String!, $password: String!) {
+  register(name: $name, email: $email, password: $password) {
+    token
+    user {
+      id
+      name
+      email
+      createdAt
+    }
+  }
+}
+    `);
+
+export const useRegisterMutation = <
+      TError = unknown,
+      TContext = unknown
+    >(options?: UseMutationOptions<RegisterMutation, TError, RegisterMutationVariables, TContext>) => {
+    
+    return useMutation<RegisterMutation, TError, RegisterMutationVariables, TContext>(
+      {
+    mutationKey: ['Register'],
+    mutationFn: (variables?: RegisterMutationVariables) => fetcher<RegisterMutation, RegisterMutationVariables>(RegisterDocument, variables)(),
+    ...options
+  }
+    )};
+
+useRegisterMutation.getKey = () => ['Register'];
+
 export const GetLocationsDocument = /*#__PURE__*/ new TypedDocumentString(`
     query GetLocations($take: Int, $skip: Int, $name: String) {
   locations(take: $take, skip: $skip, name: $name) {
@@ -654,6 +744,35 @@ export const useGetLocationsQuery = <
     )};
 
 useGetLocationsQuery.getKey = (variables?: GetLocationsQueryVariables) => variables === undefined ? ['GetLocations'] : ['GetLocations', variables];
+
+export const MeDocument = /*#__PURE__*/ new TypedDocumentString(`
+    query Me {
+  me {
+    id
+    name
+    email
+    createdAt
+  }
+}
+    `);
+
+export const useMeQuery = <
+      TData = MeQuery,
+      TError = unknown
+    >(
+      variables?: MeQueryVariables,
+      options?: Omit<UseQueryOptions<MeQuery, TError, TData>, 'queryKey'> & { queryKey?: UseQueryOptions<MeQuery, TError, TData>['queryKey'] }
+    ) => {
+    
+    return useQuery<MeQuery, TError, TData>(
+      {
+    queryKey: variables === undefined ? ['Me'] : ['Me', variables],
+    queryFn: fetcher<MeQuery, MeQueryVariables>(MeDocument, variables),
+    ...options
+  }
+    )};
+
+useMeQuery.getKey = (variables?: MeQueryVariables) => variables === undefined ? ['Me'] : ['Me', variables];
 
 export const GetSpotsDocument = /*#__PURE__*/ new TypedDocumentString(`
     query GetSpots($take: Int, $skip: Int, $name: String) {
