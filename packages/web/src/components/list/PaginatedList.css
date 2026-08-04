@@ -1,0 +1,126 @@
+.paginated-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.paginated-list__header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.paginated-list__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.paginated-list__title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.paginated-list__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.paginated-list__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.paginated-list__filter input,
+.paginated-list__filter select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-weight: 400;
+  background: #fff;
+}
+
+.paginated-list__filter input:focus,
+.paginated-list__filter select:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
+}
+
+.paginated-list__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.paginated-list__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.paginated-list__table th,
+.paginated-list__table td {
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+.paginated-list__table th {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.paginated-list__table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.paginated-list__state {
+  text-align: center;
+  color: #64748b;
+  padding: 1.5rem !important;
+}
+
+.paginated-list__state--error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.paginated-list__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.paginated-list__meta {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.paginated-list__pager {
+  display: flex;
+  gap: 8px;
+}

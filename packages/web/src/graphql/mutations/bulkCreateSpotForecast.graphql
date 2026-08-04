@@ -1,0 +1,6 @@
+mutation BulkCreateSpotForecast($data: [SpotForecastCreateInput!]!) {
+  bulkCreateSpotForecast(data: $data) {
+    id
+    ideal
+  }
+}

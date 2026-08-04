@@ -6,10 +6,12 @@ export const LocationRef = builder.prismaObject('Location', {
     id: t.exposeID('id'),
     name: t.exposeString('name'),
     country: t.expose('country', { type: CountryEnum }),
-    lat: t.exposeFloat('lat'),
-    lng: t.exposeFloat('lng'),
+    lat: t.exposeFloat('lat', { nullable: true }),
+    lng: t.exposeFloat('lng', { nullable: true }),
     mapsUrl: t.string({
+      nullable: true,
       resolve: (d) => {
+        if (d.lat == null || d.lng == null) return null
         return `https://www.google.com/maps?q=${d.lat},${d.lng}`
       },
     }),

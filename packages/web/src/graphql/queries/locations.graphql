@@ -1,0 +1,9 @@
+query GetLocations($take: Int, $skip: Int, $name: String) {
+  locations(take: $take, skip: $skip, name: $name) {
+    id
+    name
+    country
+    lat
+    lng
+  }
+}

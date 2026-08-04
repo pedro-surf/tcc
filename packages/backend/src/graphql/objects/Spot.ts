@@ -1,5 +1,6 @@
 import { builder } from '../builder'
 import BottomTypeEnum from '../enums/BottomType';
+import CountryEnum from '../enums/Country';
 import WaveTypeEnum from '../enums/WaveType';
 
 export const SpotRef = builder.prismaObject('Spot', {
@@ -8,8 +9,9 @@ export const SpotRef = builder.prismaObject('Spot', {
     name: t.exposeString('name'),
     waveType: t.expose('waveType', { type: WaveTypeEnum }),
     bottomType: t.expose('bottomType', { type: BottomTypeEnum }),
+    country: t.expose('country', { type: CountryEnum }),
     locationId: t.exposeString('locationId'),
-    secret: t.exposeBoolean('secret'),
+    secret: t.exposeBoolean('secret', { nullable: true }),
     lat: t.exposeFloat('lat'),
     lng: t.exposeFloat('lng'),
     mapsUrl: t.string({

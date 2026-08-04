@@ -1,0 +1,14 @@
+query GetSpots($take: Int, $skip: Int, $name: String) {
+  spots(take: $take, skip: $skip, name: $name) {
+    id
+    name
+    lat
+    lng
+    waveType
+    bottomType
+    country
+    locationId
+    difficulty
+    mapsUrl
+  }
+}

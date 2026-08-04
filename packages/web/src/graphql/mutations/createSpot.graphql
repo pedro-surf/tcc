@@ -1,0 +1,14 @@
+mutation CreateSpot($data: SpotCreateInput!) {
+  createSpot(data: $data) {
+    id
+    name
+    lat
+    lng
+    waveType
+    bottomType
+    country
+    locationId
+    difficulty
+    mapsUrl
+  }
+}

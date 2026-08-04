@@ -1,0 +1,42 @@
+.create-spot {
+  width: 100%;
+  max-width: 860px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 45%);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.create-spot__header {
+  margin-bottom: 18px;
+}
+
+.create-spot__header h2 {
+  margin: 0 0 6px;
+  font-size: 1.4rem;
+  color: #0f172a;
+}
+
+.create-spot__header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.create-spot__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.create-spot__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 720px) {
+  .create-spot__grid {
+    grid-template-columns: 1fr;
+  }
+}
