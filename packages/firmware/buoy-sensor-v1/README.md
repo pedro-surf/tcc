@@ -9,6 +9,8 @@ ESP32 firmware for buoy IMU + barometer bring-up with SD CSV logging.
 | I2C | SDA=21, SCL=22 |
 | SPI (SD) | MOSI=23, MISO=19, SCLK=18, CS=5 |
 
+Full build handoff schematic (pin tables + diagram): [`SCHEMATIC.md`](SCHEMATIC.md) / [`docs/buoy-sensor-v1-schematic.png`](docs/buoy-sensor-v1-schematic.png)
+
 ## What this build does
 
 1. Init I2C master
