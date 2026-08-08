@@ -1,0 +1,14 @@
+query SpotChecksBySpot($spotId: String!, $take: Int, $skip: Int) {
+  spotChecksBySpot(spotId: $spotId, take: $take, skip: $skip) {
+    id
+    description
+    score
+    timestamp
+    userId
+    media {
+      id
+      mediaUrl
+      mediaType
+    }
+  }
+}

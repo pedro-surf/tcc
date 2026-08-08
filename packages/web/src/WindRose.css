@@ -1,0 +1,74 @@
+.wind-rose {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.wind-rose__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.wind-rose__dial {
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  position: relative;
+  user-select: none;
+  background:
+    radial-gradient(circle at center, #fff 0 28%, transparent 29%),
+    conic-gradient(from 0deg, #e2e8f0, #f8fafc, #e2e8f0);
+  cursor: crosshair;
+}
+
+.wind-rose__n,
+.wind-rose__e,
+.wind-rose__s,
+.wind-rose__w {
+  position: absolute;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.wind-rose__n {
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.wind-rose__e {
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.wind-rose__s {
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.wind-rose__w {
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.wind-rose__needle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  background: #dc2626;
+  transform-origin: bottom center;
+}
+
+.wind-rose__hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: #0f172a;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}

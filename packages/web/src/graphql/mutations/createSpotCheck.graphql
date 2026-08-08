@@ -1,0 +1,17 @@
+mutation CreateSpotCheck($data: SpotCheckCreateInput!) {
+  createSpotCheck(data: $data) {
+    id
+    spotId
+    userId
+    description
+    score
+    timestamp
+    createdAt
+    media {
+      id
+      mediaUrl
+      mediaType
+      mimeType
+    }
+  }
+}

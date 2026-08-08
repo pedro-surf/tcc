@@ -1,4 +1,5 @@
 import './User'
+import './Follower'
 import './Board'
 import './Session'
 import './Spot'

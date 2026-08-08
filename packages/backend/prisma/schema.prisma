@@ -39,6 +39,7 @@ model User {
   spotChecks   SpotCheck[]
   accesses  UserAccess[]
   forecasts  SpotForecast[]
+  competitions SpotCompetition[]
 }
 
 model Follower {
@@ -77,6 +78,11 @@ enum Country {
   PERU
 }
 
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
 model Location {
   id          String   @id @default(uuid())
   name        String
@@ -90,17 +96,21 @@ model Location {
 }
 
 model Spot {
-  id          String   @id @default(uuid())
-  name        String
-  waveType    WaveType
-  bottomType  BottomType
-  country     Country
-  locationId  String
-  description String?
-  secret      Boolean?
-  lat         Float
-  lng         Float
-  difficulty  String?
+  id            String   @id @default(uuid())
+  name          String
+  waveType      WaveType
+  bottomType    BottomType
+  country       Country
+  locationId    String
+  description   String?
+  secret        Boolean?
+  lat           Float
+  lng           Float
+  difficulty    String?
+  /// Ideal wind direction in degrees (0 = N, clockwise)
+  idealWindDir  Float?
+  /// Ideal swell direction in degrees (0 = N, clockwise)
+  idealSwellDir Float?
 
   createdAt   DateTime @default(now())
 
@@ -193,13 +203,16 @@ model SpotAccess {
 }
 
 model SpotCompetition {
-  id        String   @id @default(uuid())
-  spotId    String
-  name      String
-  date      DateTime
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  spotId      String
+  name        String
+  description String?
+  date        DateTime
+  createdById String?
+  createdAt   DateTime @default(now())
 
   spot      Spot @relation(fields: [spotId], references: [id])
+  createdBy User? @relation(fields: [createdById], references: [id])
 }
 
 model SpotForecast {
@@ -244,10 +257,12 @@ model SpotCheck {
 }
 
 model SpotCheckMedia {
-  id        String   @id @default(uuid())
+  id          String    @id @default(uuid())
   spotCheckId String
-  mediaUrl  String
-  createdAt DateTime @default(now())
+  mediaUrl    String
+  mediaType   MediaType
+  mimeType    String?
+  createdAt   DateTime  @default(now())
 
   spotCheck SpotCheck @relation(fields: [spotCheckId], references: [id])
 }

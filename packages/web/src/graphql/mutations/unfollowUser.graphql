@@ -1,0 +1,3 @@
+mutation UnfollowUser($userId: String!) {
+  unfollowUser(userId: $userId)
+}

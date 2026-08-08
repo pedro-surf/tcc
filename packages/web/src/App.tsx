@@ -1,17 +1,25 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import './index.css'
 import SessionDetail from './SessionDetails'
 import type { Session } from './types'
 import { loadCbor } from './utils/loadCbor'
 import { fakeSessions } from './utils/fakeSessions'
 import { SpotsPage } from './features/spots/SpotsPage'
+import { SpotChecksPage } from './features/spotChecks/SpotChecksPage'
 import { AuthPage } from './features/auth/AuthPage'
 import { useAuth } from './auth/AuthContext'
 
-type AppView = 'sessions' | 'spots' | 'account'
+type AppView = 'sessions' | 'spots' | 'checks' | 'account' | 'friends'
 
-function App() {
+type Props = {
+  children?: ReactNode
+}
+
+function App({ children }: Props) {
   const { user, isAuthenticated, logout } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [view, setView] = useState<AppView>('sessions')
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [secondSelectedSession, setSecondSelectedSession] =
@@ -71,25 +79,63 @@ function App() {
         <nav className="app-nav">
           <button
             type="button"
-            className={`app-nav__btn${view === 'sessions' ? ' is-active' : ''}`}
-            onClick={() => setView('sessions')}
+            className={`app-nav__btn${
+              !children && view === 'sessions' ? ' is-active' : ''
+            }`}
+            onClick={() => {
+              navigate('/')
+              setView('sessions')
+            }}
           >
             Sessions
           </button>
           <button
             type="button"
-            className={`app-nav__btn${view === 'spots' ? ' is-active' : ''}`}
-            onClick={() => setView('spots')}
+            className={`app-nav__btn${
+              !children && view === 'spots' ? ' is-active' : ''
+            }`}
+            onClick={() => {
+              navigate('/')
+              setView('spots')
+            }}
           >
             Spots
           </button>
           <button
             type="button"
-            className={`app-nav__btn${view === 'account' ? ' is-active' : ''}`}
-            onClick={() => setView('account')}
+            className={`app-nav__btn${
+              !children && view === 'checks' ? ' is-active' : ''
+            }`}
+            onClick={() => {
+              navigate('/')
+              setView('checks')
+            }}
+          >
+            Spot checks
+          </button>
+          <Link
+            to="/friends"
+            className={`app-nav__btn app-nav__link${
+              location.pathname.startsWith('/friends') ? ' is-active' : ''
+            }`}
+          >
+            Friends
+          </Link>
+          <button
+            type="button"
+            className={`app-nav__btn${
+              !children && view === 'account' ? ' is-active' : ''
+            }`}
+            onClick={() => {
+              navigate('/')
+              setView('account')
+            }}
           >
             {isAuthenticated ? 'Account' : 'Sign in'}
           </button>
+          <Link to="/simulation" className="app-nav__btn app-nav__link">
+            Simulation
+          </Link>
         </nav>
         {isAuthenticated && user ? (
           <div className="app-user">
@@ -107,12 +153,14 @@ function App() {
         )}
       </header>
 
-      {view === 'account' ? (
-        <AuthPage onAuthenticated={() => setView('spots')} />
+      {children ? (
+        children
+      ) : view === 'account' ? (
+        <AuthPage onAuthenticated={() => setView('checks')} />
       ) : view === 'spots' ? (
-        <SpotsPage
-          onRequireAuth={() => setView('account')}
-        />
+        <SpotsPage onRequireAuth={() => setView('account')} />
+      ) : view === 'checks' ? (
+        <SpotChecksPage onRequireAuth={() => setView('account')} />
       ) : (
         <>
           {!hideInputs && (

@@ -32,7 +32,7 @@ export default function ForecastTable({ data }: Props) {
           direction={f.swellDir}
           energy={f.energy}
           wind={f.wind}
-          windDir={45} // mock (NE)
+          windDir={f.windDir}
           ideal={f.ideal}
         />
       ))}

@@ -1,0 +1,9 @@
+mutation CreateSpotCompetition($data: SpotCompetitionCreateInput!) {
+  createSpotCompetition(data: $data) {
+    id
+    name
+    description
+    date
+    spotId
+  }
+}

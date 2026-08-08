@@ -1,0 +1,7 @@
+query GetUsers($take: Int, $skip: Int, $name: String) {
+  users(take: $take, skip: $skip, name: $name) {
+    id
+    name
+    email
+  }
+}

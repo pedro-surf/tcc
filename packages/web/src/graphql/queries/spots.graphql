@@ -9,6 +9,9 @@ query GetSpots($take: Int, $skip: Int, $name: String) {
     country
     locationId
     difficulty
+    description
+    idealWindDir
+    idealSwellDir
     mapsUrl
   }
 }

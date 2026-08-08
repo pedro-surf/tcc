@@ -1,5 +1,8 @@
 import './createSpot'
 import './createLocation'
 import './createSpotForecast'
+import './createSpotCheck'
+import './createSpotCompetition'
+import './followUser'
 import './register'
 import './login'

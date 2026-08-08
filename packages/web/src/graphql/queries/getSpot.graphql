@@ -1,0 +1,18 @@
+query GetSpot($id: ID!) {
+  spot(id: $id) {
+    id
+    name
+    description
+    lat
+    lng
+    waveType
+    bottomType
+    country
+    locationId
+    difficulty
+    idealWindDir
+    idealSwellDir
+    mapsUrl
+    createdAt
+  }
+}

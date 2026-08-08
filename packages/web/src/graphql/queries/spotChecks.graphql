@@ -1,0 +1,17 @@
+query GetSpotChecks($take: Int, $skip: Int) {
+  spotchecks(take: $take, skip: $skip) {
+    id
+    spotId
+    userId
+    description
+    score
+    timestamp
+    createdAt
+    media {
+      id
+      mediaUrl
+      mediaType
+      mimeType
+    }
+  }
+}

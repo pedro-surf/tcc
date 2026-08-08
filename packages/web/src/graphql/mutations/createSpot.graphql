@@ -9,6 +9,9 @@ mutation CreateSpot($data: SpotCreateInput!) {
     country
     locationId
     difficulty
+    description
+    idealWindDir
+    idealSwellDir
     mapsUrl
   }
 }

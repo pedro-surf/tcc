@@ -3,7 +3,7 @@ import { builder } from '../builder';
 export const SpotForecastRef = builder.prismaObject('SpotForecast', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    spotId: t.exposeString('spotId'),
+    spotId: t.exposeString('spotId', { nullable: true }),
     ideal: t.exposeBoolean('ideal'),
     score: t.exposeFloat('score', { nullable: true }),
     userId: t.exposeString('userId'),

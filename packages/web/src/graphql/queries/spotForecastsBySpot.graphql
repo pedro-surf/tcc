@@ -1,0 +1,17 @@
+query SpotForecastsBySpot($spotId: String!, $take: Int, $skip: Int) {
+  spotForecastsBySpot(spotId: $spotId, take: $take, skip: $skip) {
+    id
+    ideal
+    score
+    swell
+    swellDir
+    wind
+    windDir
+    period
+    energy
+    temp
+    gust
+    power
+    timestamp
+  }
+}

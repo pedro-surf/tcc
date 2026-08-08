@@ -1,0 +1,9 @@
+query SpotCompetitionsBySpot($spotId: String!, $take: Int, $skip: Int) {
+  spotCompetitionsBySpot(spotId: $spotId, take: $take, skip: $skip) {
+    id
+    name
+    description
+    date
+    createdById
+  }
+}

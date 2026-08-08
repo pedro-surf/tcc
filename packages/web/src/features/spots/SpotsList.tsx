@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import {
   PaginatedList,
   type ListColumn,
@@ -17,7 +18,11 @@ type SpotRow = GetSpotsQuery['spots'][number]
 const PAGE_SIZE = 10
 
 const columns: ListColumn<SpotRow>[] = [
-  { key: 'name', header: 'Name' },
+  {
+    key: 'name',
+    header: 'Name',
+    render: (spot) => <Link to={`/spots/${spot.id}`}>{spot.name}</Link>,
+  },
   {
     key: 'country',
     header: 'Country',

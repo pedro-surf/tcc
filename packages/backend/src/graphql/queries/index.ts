@@ -1,6 +1,9 @@
 import { createListQuery } from "../utils/createListQuery"
 import { loadGqlObjects } from "../utils/loadObjects"
 import './me'
+import './spot'
+import './spotForecastsBySpot'
+import './spotTimeline'
 
 const NAME_FILTER_MODELS = new Set(['Spot', 'User', 'Location', 'Board'])
 

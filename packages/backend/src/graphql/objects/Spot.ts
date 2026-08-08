@@ -1,7 +1,7 @@
 import { builder } from '../builder'
-import BottomTypeEnum from '../enums/BottomType';
-import CountryEnum from '../enums/Country';
-import WaveTypeEnum from '../enums/WaveType';
+import BottomTypeEnum from '../enums/BottomType'
+import CountryEnum from '../enums/Country'
+import WaveTypeEnum from '../enums/WaveType'
 
 export const SpotRef = builder.prismaObject('Spot', {
   fields: (t) => ({
@@ -11,9 +11,12 @@ export const SpotRef = builder.prismaObject('Spot', {
     bottomType: t.expose('bottomType', { type: BottomTypeEnum }),
     country: t.expose('country', { type: CountryEnum }),
     locationId: t.exposeString('locationId'),
+    description: t.exposeString('description', { nullable: true }),
     secret: t.exposeBoolean('secret', { nullable: true }),
     lat: t.exposeFloat('lat'),
     lng: t.exposeFloat('lng'),
+    idealWindDir: t.exposeFloat('idealWindDir', { nullable: true }),
+    idealSwellDir: t.exposeFloat('idealSwellDir', { nullable: true }),
     mapsUrl: t.string({
       resolve: (spot) => {
         return `https://www.google.com/maps?q=${spot.lat},${spot.lng}`
@@ -25,6 +28,7 @@ export const SpotRef = builder.prismaObject('Spot', {
     accesses: t.relation('accesses'),
     checks: t.relation('checks'),
     competitions: t.relation('competitions'),
+    forecasts: t.relation('forecasts'),
     data: t.relation('data'),
   }),
-});
+})

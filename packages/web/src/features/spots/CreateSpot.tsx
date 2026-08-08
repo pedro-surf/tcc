@@ -3,6 +3,8 @@ import { Field, Form, Formik } from 'formik'
 import { useMemo } from 'react'
 import { FormField } from '../../components/forms/FormField'
 import { FormSelect } from '../../components/forms/FormSelect'
+import WindRose from '../../WindRose'
+import '../../WindRose.css'
 import {
   useCreateSpotMutation,
   useGetLocationsQuery,
@@ -32,9 +34,7 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
 
   const createSpot = useCreateSpotMutation({
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['GetSpots'],
-      })
+      await queryClient.invalidateQueries({ queryKey: ['GetSpots'] })
       onCreated?.()
     },
   })
@@ -48,36 +48,33 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
     [locationsQuery.data?.locations],
   )
 
-  const handleSubmit = async (values: SpotFormValues) => {
-    await createSpot.mutateAsync({
-      data: toSpotCreateInput(values),
-    })
-  }
-
   return (
     <section className="create-spot">
       <header className="create-spot__header">
         <div>
           <h2>Create spot</h2>
-          <p>Add a surf break with location, wave shape, and coordinates.</p>
+          <p>
+            Add a surf break with location, wave shape, and ideal wind/swell
+            directions.
+          </p>
         </div>
       </header>
 
-      <Formik
+      <Formik<SpotFormValues>
         initialValues={spotFormInitialValues}
         validationSchema={spotFormSchema}
         onSubmit={async (values, helpers) => {
           try {
-            await handleSubmit(values)
+            await createSpot.mutateAsync({ data: toSpotCreateInput(values) })
             helpers.resetForm()
           } catch {
-            // Error surface via mutation state below
+            // surfaced via mutation state
           } finally {
             helpers.setSubmitting(false)
           }
         }}
       >
-        {({ isSubmitting }) => (
+        {({ isSubmitting, values, setFieldValue }) => (
           <Form className="create-spot__form">
             <div className="create-spot__grid">
               <Field name="name">
@@ -105,13 +102,6 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
                     }
                     field={field}
                     form={form}
-                    hint={
-                      locationsQuery.isError
-                        ? 'Could not load locations. Is the API running?'
-                        : locationOptions.length === 0 && !locationsQuery.isLoading
-                          ? 'No locations yet — create one in the API first.'
-                          : undefined
-                    }
                   />
                 )}
               </Field>
@@ -170,7 +160,6 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
                     type="number"
                     step="any"
                     required
-                    placeholder="-27.57"
                     field={field}
                     form={form}
                   />
@@ -184,12 +173,45 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
                     type="number"
                     step="any"
                     required
-                    placeholder="-48.42"
                     field={field}
                     form={form}
                   />
                 )}
               </Field>
+            </div>
+
+            <Field name="description">
+              {({ field, form }: any) => (
+                <label className="form-field">
+                  <span className="form-field__label">Description</span>
+                  <textarea
+                    {...field}
+                    className="form-field__input"
+                    rows={3}
+                    placeholder="Local knowledge, hazards, best tide…"
+                  />
+                  {form.touched.description && form.errors.description ? (
+                    <span className="form-field__error">
+                      {String(form.errors.description)}
+                    </span>
+                  ) : null}
+                </label>
+              )}
+            </Field>
+
+            <div className="create-spot__roses">
+              <WindRose
+                label="Ideal wind"
+                size={160}
+                value={values.idealWindDir}
+                onChange={(deg) => setFieldValue('idealWindDir', deg)}
+              />
+              <WindRose
+                label="Ideal swell"
+                size={160}
+                value={values.idealSwellDir}
+                onChange={(deg) => setFieldValue('idealSwellDir', deg)}
+              />
             </div>
 
             <div className="form-actions">
@@ -216,11 +238,6 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
                 <span className="form-status form-status--error">
                   {(createSpot.error as Error).message ||
                     'Failed to create spot'}
-                </span>
-              ) : null}
-              {createSpot.isSuccess ? (
-                <span className="form-status form-status--success">
-                  Spot created.
                 </span>
               ) : null}
             </div>

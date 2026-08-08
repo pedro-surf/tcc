@@ -35,6 +35,14 @@
   gap: 14px;
 }
 
+.create-spot__roses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
 @media (max-width: 720px) {
   .create-spot__grid {
     grid-template-columns: 1fr;

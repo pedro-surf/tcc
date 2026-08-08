@@ -16,6 +16,9 @@ export type SpotFormValues = {
   lat: string
   lng: string
   difficulty: string
+  description: string
+  idealWindDir: number
+  idealSwellDir: number
 }
 
 export const spotFormInitialValues: SpotFormValues = {
@@ -27,6 +30,9 @@ export const spotFormInitialValues: SpotFormValues = {
   lat: '',
   lng: '',
   difficulty: '',
+  description: '',
+  idealWindDir: 0,
+  idealSwellDir: 180,
 }
 
 const enumLabel = (value: string) =>
@@ -68,15 +74,18 @@ export const spotFormSchema = Yup.object({
     .required('Bottom type is required'),
   lat: Yup.number()
     .typeError('Latitude must be a number')
-    .min(-90, 'Latitude must be between -90 and 90')
-    .max(90, 'Latitude must be between -90 and 90')
+    .min(-90)
+    .max(90)
     .required('Latitude is required'),
   lng: Yup.number()
     .typeError('Longitude must be a number')
-    .min(-180, 'Longitude must be between -180 and 180')
-    .max(180, 'Longitude must be between -180 and 180')
+    .min(-180)
+    .max(180)
     .required('Longitude is required'),
   difficulty: Yup.string().trim(),
+  description: Yup.string().trim(),
+  idealWindDir: Yup.number().min(0).max(360).required(),
+  idealSwellDir: Yup.number().min(0).max(360).required(),
 })
 
 export function toSpotCreateInput(values: SpotFormValues): SpotCreateInput {
@@ -89,5 +98,8 @@ export function toSpotCreateInput(values: SpotFormValues): SpotCreateInput {
     lat: Number(values.lat),
     lng: Number(values.lng),
     difficulty: values.difficulty.trim() || undefined,
+    description: values.description.trim() || undefined,
+    idealWindDir: values.idealWindDir,
+    idealSwellDir: values.idealSwellDir,
   }
 }
