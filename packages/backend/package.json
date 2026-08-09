@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "pre:dev": "pnpm db && pnpm generate",
     "dev": "ts-node -r tsconfig-paths/register src/server.ts",
     "build": "tsc",
     "generate": "prisma generate",

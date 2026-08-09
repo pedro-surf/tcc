@@ -225,6 +225,7 @@ export type Query = {
   spotcompetitions: Array<SpotCompetition>;
   spotdatas: Array<SpotData>;
   spotforecasts: Array<SpotForecast>;
+  spotmedias: Array<SpotMedia>;
   spots: Array<Spot>;
   users: Array<User>;
   wetsuits: Array<Wetsuit>;
@@ -367,6 +368,12 @@ export type QuerySpotforecastsArgs = {
 };
 
 
+export type QuerySpotmediasArgs = {
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QuerySpotsArgs = {
   name?: InputMaybe<Scalars['String']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
@@ -482,6 +489,8 @@ export type Spot = {
   competitions: Array<SpotCompetition>;
   country: CountryEnum;
   createdAt: Scalars['DateTime']['output'];
+  createdBy?: Maybe<User>;
+  createdById?: Maybe<Scalars['String']['output']>;
   data: Array<SpotData>;
   description?: Maybe<Scalars['String']['output']>;
   difficulty?: Maybe<Scalars['String']['output']>;
@@ -493,9 +502,12 @@ export type Spot = {
   lng: Scalars['Float']['output'];
   locationId: Scalars['String']['output'];
   mapsUrl: Scalars['String']['output'];
+  media: Array<SpotMedia>;
   name: Scalars['String']['output'];
-  secret?: Maybe<Scalars['Boolean']['output']>;
+  secret: Scalars['Boolean']['output'];
   sessions: Array<Session>;
+  strongSwellTolerance?: Maybe<Scalars['Int']['output']>;
+  strongWindTolerance?: Maybe<Scalars['Int']['output']>;
   waveType: WaveTypeEnum;
 };
 
@@ -576,10 +588,14 @@ export type SpotCreateInput = {
   difficulty?: InputMaybe<Scalars['String']['input']>;
   idealSwellDir?: InputMaybe<Scalars['Float']['input']>;
   idealWindDir?: InputMaybe<Scalars['Float']['input']>;
-  lat?: InputMaybe<Scalars['Float']['input']>;
-  lng?: InputMaybe<Scalars['Float']['input']>;
+  lat: Scalars['Float']['input'];
+  lng: Scalars['Float']['input'];
   locationId: Scalars['String']['input'];
+  media?: InputMaybe<Array<SpotMediaInput>>;
   name: Scalars['String']['input'];
+  secret?: InputMaybe<Scalars['Boolean']['input']>;
+  strongSwellTolerance?: InputMaybe<Scalars['Int']['input']>;
+  strongWindTolerance?: InputMaybe<Scalars['Int']['input']>;
   waveType: WaveTypeEnum;
 };
 
@@ -632,6 +648,23 @@ export type SpotForecastCreateInput = {
   windDir: Scalars['Float']['input'];
 };
 
+export type SpotMedia = {
+  __typename?: 'SpotMedia';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  mediaType: MediaTypeEnum;
+  mediaUrl: Scalars['String']['output'];
+  mimeType?: Maybe<Scalars['String']['output']>;
+  spot: Spot;
+  spotId: Scalars['String']['output'];
+};
+
+export type SpotMediaInput = {
+  mediaType: MediaTypeEnum;
+  mediaUrl: Scalars['String']['input'];
+  mimeType?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type User = {
   __typename?: 'User';
   createdAt: Scalars['DateTime']['output'];
@@ -672,7 +705,7 @@ export type CreateSpotMutationVariables = Exact<{
 }>;
 
 
-export type CreateSpotMutation = { __typename?: 'Mutation', createSpot: { __typename?: 'Spot', id: string, name: string, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, description?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, mapsUrl: string } };
+export type CreateSpotMutation = { __typename?: 'Mutation', createSpot: { __typename?: 'Spot', id: string, name: string, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, description?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, strongSwellTolerance?: number | null, strongWindTolerance?: number | null, secret: boolean, mapsUrl: string, media: Array<{ __typename?: 'SpotMedia', id: string, mediaUrl: string, mediaType: MediaTypeEnum }> } };
 
 export type CreateSpotCheckMutationVariables = Exact<{
   data: SpotCheckCreateInput;
@@ -724,7 +757,7 @@ export type GetSpotQueryVariables = Exact<{
 }>;
 
 
-export type GetSpotQuery = { __typename?: 'Query', spot?: { __typename?: 'Spot', id: string, name: string, description?: string | null, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, mapsUrl: string, createdAt: any } | null };
+export type GetSpotQuery = { __typename?: 'Query', spot?: { __typename?: 'Spot', id: string, name: string, description?: string | null, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, strongSwellTolerance?: number | null, strongWindTolerance?: number | null, secret: boolean, mapsUrl: string, createdAt: any, media: Array<{ __typename?: 'SpotMedia', id: string, mediaUrl: string, mediaType: MediaTypeEnum, mimeType?: string | null }> } | null };
 
 export type GetLocationsQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -787,7 +820,7 @@ export type GetSpotsQueryVariables = Exact<{
 }>;
 
 
-export type GetSpotsQuery = { __typename?: 'Query', spots: Array<{ __typename?: 'Spot', id: string, name: string, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, description?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, mapsUrl: string }> };
+export type GetSpotsQuery = { __typename?: 'Query', spots: Array<{ __typename?: 'Spot', id: string, name: string, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, description?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, strongSwellTolerance?: number | null, strongWindTolerance?: number | null, secret: boolean, mapsUrl: string }> };
 
 export type GetUsersQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -839,7 +872,15 @@ export const CreateSpotDocument = /*#__PURE__*/ new TypedDocumentString(`
     description
     idealWindDir
     idealSwellDir
+    strongSwellTolerance
+    strongWindTolerance
+    secret
     mapsUrl
+    media {
+      id
+      mediaUrl
+      mediaType
+    }
   }
 }
     `);
@@ -1039,8 +1080,17 @@ export const GetSpotDocument = /*#__PURE__*/ new TypedDocumentString(`
     difficulty
     idealWindDir
     idealSwellDir
+    strongSwellTolerance
+    strongWindTolerance
+    secret
     mapsUrl
     createdAt
+    media {
+      id
+      mediaUrl
+      mediaType
+      mimeType
+    }
   }
 }
     `);
@@ -1306,6 +1356,9 @@ export const GetSpotsDocument = /*#__PURE__*/ new TypedDocumentString(`
     description
     idealWindDir
     idealSwellDir
+    strongSwellTolerance
+    strongWindTolerance
+    secret
     mapsUrl
   }
 }

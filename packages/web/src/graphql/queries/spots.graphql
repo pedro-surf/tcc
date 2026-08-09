@@ -12,6 +12,9 @@ query GetSpots($take: Int, $skip: Int, $name: String) {
     description
     idealWindDir
     idealSwellDir
+    strongSwellTolerance
+    strongWindTolerance
+    secret
     mapsUrl
   }
 }

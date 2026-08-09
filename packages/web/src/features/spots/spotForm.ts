@@ -4,6 +4,7 @@ import {
   CountryEnum,
   WaveTypeEnum,
   type SpotCreateInput,
+  type SpotMediaInput,
 } from '../../generated/graphql'
 import type { SelectOption } from '../../components/forms/FormSelect'
 
@@ -19,6 +20,9 @@ export type SpotFormValues = {
   description: string
   idealWindDir: number
   idealSwellDir: number
+  strongSwellTolerance: number
+  strongWindTolerance: number
+  secret: boolean
 }
 
 export const spotFormInitialValues: SpotFormValues = {
@@ -33,6 +37,9 @@ export const spotFormInitialValues: SpotFormValues = {
   description: '',
   idealWindDir: 0,
   idealSwellDir: 180,
+  strongSwellTolerance: 3,
+  strongWindTolerance: 3,
+  secret: false,
 }
 
 const enumLabel = (value: string) =>
@@ -60,6 +67,11 @@ export const bottomTypeOptions: SelectOption[] = bottomTypeValues.map(
   (value) => ({ value, label: enumLabel(value) }),
 )
 
+export const toleranceOptions: SelectOption[] = [1, 2, 3, 4, 5].map((n) => ({
+  value: String(n),
+  label: `${n}`,
+}))
+
 export const spotFormSchema = Yup.object({
   name: Yup.string().trim().required('Name is required'),
   locationId: Yup.string().required('Location is required'),
@@ -86,9 +98,15 @@ export const spotFormSchema = Yup.object({
   description: Yup.string().trim(),
   idealWindDir: Yup.number().min(0).max(360).required(),
   idealSwellDir: Yup.number().min(0).max(360).required(),
+  strongSwellTolerance: Yup.number().integer().min(1).max(5).required(),
+  strongWindTolerance: Yup.number().integer().min(1).max(5).required(),
+  secret: Yup.boolean().required(),
 })
 
-export function toSpotCreateInput(values: SpotFormValues): SpotCreateInput {
+export function toSpotCreateInput(
+  values: SpotFormValues,
+  media: SpotMediaInput[] = [],
+): SpotCreateInput {
   return {
     name: values.name.trim(),
     locationId: values.locationId,
@@ -101,5 +119,9 @@ export function toSpotCreateInput(values: SpotFormValues): SpotCreateInput {
     description: values.description.trim() || undefined,
     idealWindDir: values.idealWindDir,
     idealSwellDir: values.idealSwellDir,
+    strongSwellTolerance: values.strongSwellTolerance,
+    strongWindTolerance: values.strongWindTolerance,
+    secret: values.secret,
+    media: media.length ? media : undefined,
   }
 }

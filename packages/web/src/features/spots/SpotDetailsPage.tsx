@@ -58,6 +58,31 @@ export function SpotDetailsPage() {
 
   const spot = spotQuery.data?.spot
 
+  const heroMedia = useMemo(() => {
+    const linked = (spot?.media ?? []).find((m) => m.mediaType === 'IMAGE')
+      ?? (spot?.media ?? [])[0]
+    if (linked) {
+      return {
+        url: mediaAbsoluteUrl(linked.mediaUrl),
+        mediaType: linked.mediaType,
+        source: 'spot' as const,
+      }
+    }
+
+    for (const check of checksQuery.data?.spotChecksBySpot ?? []) {
+      const fromCheck =
+        check.media.find((m) => m.mediaType === 'IMAGE') ?? check.media[0]
+      if (fromCheck) {
+        return {
+          url: mediaAbsoluteUrl(fromCheck.mediaUrl),
+          mediaType: fromCheck.mediaType,
+          source: 'check' as const,
+        }
+      }
+    }
+    return null
+  }, [spot?.media, checksQuery.data?.spotChecksBySpot])
+
   const timeline = useMemo(() => {
     const items: TimelineItem[] = []
     for (const check of checksQuery.data?.spotChecksBySpot ?? []) {
@@ -130,6 +155,7 @@ export function SpotDetailsPage() {
             {spot.waveType.replaceAll('_', ' ')} ·{' '}
             {spot.bottomType.replaceAll('_', ' ')}
             {spot.difficulty ? ` · ${spot.difficulty}` : ''}
+            {spot.secret ? ' · Secret' : ''}
           </p>
         </div>
         <div className="spot-details__actions">
@@ -168,9 +194,49 @@ export function SpotDetailsPage() {
         </div>
       </header>
 
-      <section className="spot-details__section">
-        <h2>Description</h2>
-        <p>{spot.description?.trim() || 'No description yet.'}</p>
+      <section className="spot-details__section spot-details__about">
+        <div className="spot-details__about-text">
+          <h2>Description</h2>
+          <p>{spot.description?.trim() || 'No description yet.'}</p>
+          <div className="spot-details__tolerances">
+            <div>
+              <span>Strong swell tolerance</span>
+              <strong>
+                {spot.strongSwellTolerance != null
+                  ? `${spot.strongSwellTolerance}/5`
+                  : '—'}
+              </strong>
+            </div>
+            <div>
+              <span>Strong wind tolerance</span>
+              <strong>
+                {spot.strongWindTolerance != null
+                  ? `${spot.strongWindTolerance}/5`
+                  : '—'}
+              </strong>
+            </div>
+          </div>
+        </div>
+        <div className="spot-details__hero-media">
+          {heroMedia ? (
+            <>
+              {heroMedia.mediaType === 'VIDEO' ? (
+                <video src={heroMedia.url} controls />
+              ) : (
+                <img src={heroMedia.url} alt={`${spot.name} media`} />
+              )}
+              {heroMedia.source === 'check' ? (
+                <p className="spot-details__media-caption">
+                  From a recent surf check
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <div className="spot-details__hero-placeholder">
+              No spot image yet
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="spot-details__section spot-details__dirs">

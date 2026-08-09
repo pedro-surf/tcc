@@ -40,6 +40,7 @@ model User {
   accesses  UserAccess[]
   forecasts  SpotForecast[]
   competitions SpotCompetition[]
+  createdSpots Spot[] @relation("SpotCreatedBy")
 }
 
 model Follower {
@@ -103,7 +104,8 @@ model Spot {
   country       Country
   locationId    String
   description   String?
-  secret        Boolean?
+  /// Private spot: visible to creator and their friends only
+  secret        Boolean  @default(false)
   lat           Float
   lng           Float
   difficulty    String?
@@ -111,16 +113,34 @@ model Spot {
   idealWindDir  Float?
   /// Ideal swell direction in degrees (0 = N, clockwise)
   idealSwellDir Float?
+  /// How well the spot tolerates strong swell (1–5)
+  strongSwellTolerance Int?
+  /// How well the spot tolerates strong wind (1–5)
+  strongWindTolerance  Int?
+  createdById   String?
 
   createdAt   DateTime @default(now())
 
   sessions       Session[]
   accesses       SpotAccess[]
   location       Location? @relation(fields: [locationId], references: [id])
+  createdBy      User? @relation("SpotCreatedBy", fields: [createdById], references: [id])
   forecasts      SpotForecast[]
   checks         SpotCheck[]
   competitions   SpotCompetition[]
   data           SpotData[]
+  media          SpotMedia[]
+}
+
+model SpotMedia {
+  id        String    @id @default(uuid())
+  spotId    String
+  mediaUrl  String
+  mediaType MediaType
+  mimeType  String?
+  createdAt DateTime  @default(now())
+
+  spot Spot @relation(fields: [spotId], references: [id])
 }
 
 model Sensor {

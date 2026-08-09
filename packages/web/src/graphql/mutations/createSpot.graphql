@@ -12,6 +12,14 @@ mutation CreateSpot($data: SpotCreateInput!) {
     description
     idealWindDir
     idealSwellDir
+    strongSwellTolerance
+    strongWindTolerance
+    secret
     mapsUrl
+    media {
+      id
+      mediaUrl
+      mediaType
+    }
   }
 }

@@ -12,7 +12,16 @@ query GetSpot($id: ID!) {
     difficulty
     idealWindDir
     idealSwellDir
+    strongSwellTolerance
+    strongWindTolerance
+    secret
     mapsUrl
     createdAt
+    media {
+      id
+      mediaUrl
+      mediaType
+      mimeType
+    }
   }
 }

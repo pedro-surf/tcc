@@ -12,11 +12,18 @@ export const SpotRef = builder.prismaObject('Spot', {
     country: t.expose('country', { type: CountryEnum }),
     locationId: t.exposeString('locationId'),
     description: t.exposeString('description', { nullable: true }),
-    secret: t.exposeBoolean('secret', { nullable: true }),
+    secret: t.exposeBoolean('secret'),
     lat: t.exposeFloat('lat'),
     lng: t.exposeFloat('lng'),
     idealWindDir: t.exposeFloat('idealWindDir', { nullable: true }),
     idealSwellDir: t.exposeFloat('idealSwellDir', { nullable: true }),
+    strongSwellTolerance: t.exposeInt('strongSwellTolerance', {
+      nullable: true,
+    }),
+    strongWindTolerance: t.exposeInt('strongWindTolerance', {
+      nullable: true,
+    }),
+    createdById: t.exposeString('createdById', { nullable: true }),
     mapsUrl: t.string({
       resolve: (spot) => {
         return `https://www.google.com/maps?q=${spot.lat},${spot.lng}`
@@ -30,5 +37,7 @@ export const SpotRef = builder.prismaObject('Spot', {
     competitions: t.relation('competitions'),
     forecasts: t.relation('forecasts'),
     data: t.relation('data'),
+    media: t.relation('media'),
+    createdBy: t.relation('createdBy', { nullable: true }),
   }),
 })

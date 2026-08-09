@@ -21,7 +21,12 @@ const columns: ListColumn<SpotRow>[] = [
   {
     key: 'name',
     header: 'Name',
-    render: (spot) => <Link to={`/spots/${spot.id}`}>{spot.name}</Link>,
+    render: (spot) => (
+      <Link to={`/spots/${spot.id}`}>
+        {spot.name}
+        {spot.secret ? ' · secret' : ''}
+      </Link>
+    ),
   },
   {
     key: 'country',
