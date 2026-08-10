@@ -9,7 +9,9 @@ import { FormSelect } from '../../components/forms/FormSelect'
 import {
   CurrencyEnum,
   MarketplaceProductTypeEnum,
+  useConcludeOfferMutation,
   useCreateMarketplaceListingMutation,
+  useGetBrandsQuery,
   useGetOffersQuery,
   useUpdateMyProfileMutation,
 } from '../../generated/graphql'
@@ -32,7 +34,8 @@ const listingSchema = Yup.object({
     .oneOf(Object.values(MarketplaceProductTypeEnum))
     .required('Type is required'),
   name: Yup.string().trim().required('Name is required'),
-  brand: Yup.string().trim(),
+  brandId: Yup.string(),
+  brandName: Yup.string().trim(),
   description: Yup.string().trim(),
   price: Yup.number().typeError('Price required').positive().required(),
   currency: Yup.mixed<CurrencyEnum>()
@@ -67,16 +70,36 @@ export function MarketplacePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<MarketplaceProductTypeEnum | ''>('')
   const [showSell, setShowSell] = useState(false)
+  const [showConcluded, setShowConcluded] = useState(false)
+  const [buyerEmail, setBuyerEmail] = useState('')
+  const [concludeError, setConcludeError] = useState<string | null>(null)
 
+  const brandsQuery = useGetBrandsQuery({ take: 200, skip: 0 })
   const offersQuery = useGetOffersQuery({
     take: 50,
     skip: 0,
     productType: filter || undefined,
+    includeConcluded: showConcluded || undefined,
   })
   const createListing = useCreateMarketplaceListingMutation({
     onSuccess: async () => {
       setShowSell(false)
+      await Promise.all([
+        offersQuery.refetch(),
+        brandsQuery.refetch(),
+      ])
+    },
+  })
+  const concludeOffer = useConcludeOfferMutation({
+    onSuccess: async () => {
+      setBuyerEmail('')
+      setConcludeError(null)
       await offersQuery.refetch()
+    },
+    onError: (error) => {
+      setConcludeError(
+        error instanceof Error ? error.message : 'Failed to conclude offer',
+      )
     },
   })
   const updateProfile = useUpdateMyProfileMutation({
@@ -85,10 +108,22 @@ export function MarketplacePage() {
     },
   })
 
+  const brandOptions = useMemo(
+    () =>
+      (brandsQuery.data?.brands ?? []).map((brand) => ({
+        value: brand.id,
+        label: brand.name,
+      })),
+    [brandsQuery.data?.brands],
+  )
+
   const offers = offersQuery.data?.offers ?? []
   const selected = useMemo(
     () => offers.find((offer) => offer.id === selectedId) ?? null,
     [offers, selectedId],
+  )
+  const isSeller = Boolean(
+    selected && user && selected.user.id === user.id && selected.active,
   )
 
   return (
@@ -96,7 +131,10 @@ export function MarketplacePage() {
       <header className="marketplace__header">
         <div>
           <h1>Marketplace</h1>
-          <p>Buy and sell boards, wetsuits, fins, and leashes. Contact sellers directly.</p>
+          <p>
+            Buy and sell boards, wetsuits, fins, and leashes. Ownership history
+            stays with the gear.
+          </p>
         </div>
         <div className="marketplace__actions">
           {isAuthenticated ? (
@@ -181,7 +219,8 @@ export function MarketplacePage() {
             initialValues={{
               productType: MarketplaceProductTypeEnum.Board,
               name: '',
-              brand: '',
+              brandId: '',
+              brandName: '',
               description: '',
               price: '',
               currency: CurrencyEnum.Brl,
@@ -198,12 +237,15 @@ export function MarketplacePage() {
                   data: {
                     productType: values.productType,
                     name: values.name.trim(),
-                    brand: values.brand.trim() || undefined,
+                    brandId: values.brandId || undefined,
+                    brandName: values.brandName.trim() || undefined,
                     description: values.description.trim() || undefined,
                     price: Number(values.price),
                     currency: values.currency,
-                    length: values.length === '' ? undefined : Number(values.length),
-                    width: values.width === '' ? undefined : Number(values.width),
+                    length:
+                      values.length === '' ? undefined : Number(values.length),
+                    width:
+                      values.width === '' ? undefined : Number(values.width),
                     thickness:
                       values.thickness === ''
                         ? undefined
@@ -221,7 +263,7 @@ export function MarketplacePage() {
               }
             }}
           >
-            {({ isSubmitting, values }) => (
+            {({ isSubmitting, values, setFieldValue }) => (
               <Form className="marketplace__sell-form">
                 <div className="marketplace__grid">
                   <Field name="productType">
@@ -248,12 +290,55 @@ export function MarketplacePage() {
                   </Field>
                   <Field name="name">
                     {({ field, form }: any) => (
-                      <FormField label="Name" required field={field} form={form} />
+                      <FormField
+                        label="Name"
+                        required
+                        field={field}
+                        form={form}
+                      />
                     )}
                   </Field>
-                  <Field name="brand">
+                  <Field name="brandId">
                     {({ field, form }: any) => (
-                      <FormField label="Brand" field={field} form={form} />
+                      <FormSelect
+                        label="Brand"
+                        options={brandOptions}
+                        placeholder={
+                          brandsQuery.isLoading
+                            ? 'Loading brands…'
+                            : 'Select brand'
+                        }
+                        field={{
+                          ...field,
+                          onChange: (
+                            e: React.ChangeEvent<HTMLSelectElement>,
+                          ) => {
+                            setFieldValue('brandId', e.target.value)
+                            if (e.target.value) setFieldValue('brandName', '')
+                          },
+                        }}
+                        form={form}
+                      />
+                    )}
+                  </Field>
+                  <Field name="brandName">
+                    {({ field, form }: any) => (
+                      <FormField
+                        label="Or new brand"
+                        placeholder="Create brand if missing"
+                        field={{
+                          ...field,
+                          onChange: (
+                            e: React.ChangeEvent<HTMLInputElement>,
+                          ) => {
+                            setFieldValue('brandName', e.target.value)
+                            if (e.target.value.trim()) {
+                              setFieldValue('brandId', '')
+                            }
+                          },
+                        }}
+                        form={form}
+                      />
                     )}
                   </Field>
                   <Field name="price">
@@ -269,16 +354,12 @@ export function MarketplacePage() {
                     )}
                   </Field>
                   {(values.productType === MarketplaceProductTypeEnum.Board ||
-                    values.productType === MarketplaceProductTypeEnum.Leash) && (
+                    values.productType ===
+                      MarketplaceProductTypeEnum.Leash) && (
                     <Field name="length">
                       {({ field, form }: any) => (
                         <FormField
-                          label={
-                            values.productType ===
-                            MarketplaceProductTypeEnum.Board
-                              ? 'Length (ft)'
-                              : 'Length (ft)'
-                          }
+                          label="Length (ft)"
                           type="number"
                           step="any"
                           required={
@@ -330,7 +411,8 @@ export function MarketplacePage() {
                       </Field>
                     </>
                   ) : null}
-                  {values.productType === MarketplaceProductTypeEnum.Wetsuit ? (
+                  {values.productType ===
+                  MarketplaceProductTypeEnum.Wetsuit ? (
                     <>
                       <Field name="thickness">
                         {({ field, form }: any) => (
@@ -410,20 +492,30 @@ export function MarketplacePage() {
       <section className="marketplace__section">
         <div className="marketplace__list-head">
           <h2>Offers</h2>
-          <select
-            className="marketplace__filter"
-            value={filter}
-            onChange={(e) =>
-              setFilter(e.target.value as MarketplaceProductTypeEnum | '')
-            }
-          >
-            <option value="">All types</option>
-            {productTypeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <div className="marketplace__filters">
+            <label className="marketplace__toggle">
+              <input
+                type="checkbox"
+                checked={showConcluded}
+                onChange={(e) => setShowConcluded(e.target.checked)}
+              />
+              Include concluded
+            </label>
+            <select
+              className="marketplace__filter"
+              value={filter}
+              onChange={(e) =>
+                setFilter(e.target.value as MarketplaceProductTypeEnum | '')
+              }
+            >
+              <option value="">All types</option>
+              {productTypeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {offersQuery.isLoading ? (
@@ -444,37 +536,114 @@ export function MarketplacePage() {
                     }
                   >
                     <div className="marketplace__card-top">
-                      <strong>{offer.productLabel || offer.title || 'Gear'}</strong>
+                      <strong>
+                        {offer.productLabel || offer.title || 'Gear'}
+                      </strong>
                       <span>{formatMoney(offer.price, offer.currency)}</span>
                     </div>
                     <div className="marketplace__card-meta">
                       {offer.productType.toLowerCase()} · {offer.user.name}
                       {offer.user.location ? ` · ${offer.user.location}` : ''}
+                      {!offer.active ? ' · concluded' : ''}
                     </div>
                     {offer.description ? <p>{offer.description}</p> : null}
                   </button>
                   {open && selected ? (
-                    <div className="marketplace__contact">
-                      <h3>Contact seller</h3>
-                      <p>
-                        <strong>{selected.user.name}</strong>
-                      </p>
-                      <p>
-                        Email:{' '}
-                        <a href={`mailto:${selected.user.email}`}>
-                          {selected.user.email}
-                        </a>
-                      </p>
-                      <p>
-                        Phone:{' '}
-                        {selected.user.phone ? (
-                          <a href={`tel:${selected.user.phone}`}>
-                            {selected.user.phone}
+                    <div className="marketplace__detail">
+                      <div className="marketplace__contact">
+                        <h3>Contact seller</h3>
+                        <p>
+                          <strong>{selected.user.name}</strong>
+                        </p>
+                        <p>
+                          Email:{' '}
+                          <a href={`mailto:${selected.user.email}`}>
+                            {selected.user.email}
                           </a>
+                        </p>
+                        <p>
+                          Phone:{' '}
+                          {selected.user.phone ? (
+                            <a href={`tel:${selected.user.phone}`}>
+                              {selected.user.phone}
+                            </a>
+                          ) : (
+                            'Not provided'
+                          )}
+                        </p>
+                        {selected.concludedAt && selected.buyer ? (
+                          <p className="marketplace__hint">
+                            Sold to {selected.buyer.name} on{' '}
+                            {new Date(selected.concludedAt).toLocaleString()}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <div className="marketplace__history">
+                        <h3>Ownership history</h3>
+                        {selected.ownershipHistory.length === 0 ? (
+                          <p>No ownership records yet.</p>
                         ) : (
-                          'Not provided'
+                          <ol>
+                            {selected.ownershipHistory.map((row) => (
+                              <li key={row.id}>
+                                <strong>{row.user.name}</strong>
+                                {row.fromUser
+                                  ? ` ← from ${row.fromUser.name}`
+                                  : ' (listed)'}
+                                <span>
+                                  {new Date(row.acquiredAt).toLocaleDateString()}
+                                  {row.releasedAt
+                                    ? ` → ${new Date(row.releasedAt).toLocaleDateString()}`
+                                    : ' · current'}
+                                </span>
+                              </li>
+                            ))}
+                          </ol>
                         )}
-                      </p>
+                      </div>
+
+                      {isSeller ? (
+                        <div className="marketplace__conclude">
+                          <h3>Mark as sold</h3>
+                          <p className="marketplace__hint">
+                            Enter the buyer’s account email. This closes the
+                            offer and transfers ownership history.
+                          </p>
+                          <div className="marketplace__conclude-row">
+                            <input
+                              className="form-field__input"
+                              type="email"
+                              placeholder="buyer@email.com"
+                              value={buyerEmail}
+                              onChange={(e) => setBuyerEmail(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              disabled={
+                                !buyerEmail.trim() || concludeOffer.isPending
+                              }
+                              onClick={() => {
+                                setConcludeError(null)
+                                concludeOffer.mutate({
+                                  offerId: selected.id,
+                                  buyerEmail: buyerEmail.trim(),
+                                })
+                              }}
+                            >
+                              {concludeOffer.isPending
+                                ? 'Saving…'
+                                : 'Conclude offer'}
+                            </button>
+                          </div>
+                          {concludeError ? (
+                            <p className="form-status form-status--error">
+                              {concludeError}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </li>

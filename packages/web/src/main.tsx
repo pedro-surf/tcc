@@ -10,6 +10,7 @@ import { SimulationPage } from './features/simulation/SimulationPage'
 import { SpotDetailsPage } from './features/spots/SpotDetailsPage'
 import { FriendsPage } from './features/friends/FriendsPage'
 import { MarketplacePage } from './features/marketplace/MarketplacePage'
+import { HighscoresPage } from './features/stats/HighscoresPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <AppShell>
                   <MarketplacePage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/highscores"
+              element={
+                <AppShell>
+                  <HighscoresPage />
                 </AppShell>
               }
             />

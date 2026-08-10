@@ -129,6 +129,14 @@ function App({ children }: Props) {
           >
             Marketplace
           </Link>
+          <Link
+            to="/highscores"
+            className={`app-nav__btn app-nav__link${
+              location.pathname.startsWith('/highscores') ? ' is-active' : ''
+            }`}
+          >
+            Highscores
+          </Link>
           <button
             type="button"
             className={`app-nav__btn${

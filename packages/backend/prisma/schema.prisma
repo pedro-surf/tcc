@@ -44,11 +44,10 @@ model User {
   forecasts  SpotForecast[]
   competitions SpotCompetition[]
   createdSpots Spot[] @relation("SpotCreatedBy")
-  boards    Board[]
-  wetsuits  Wetsuit[]
-  fins      Fins[]
-  leashes   Leash[]
-  offers    Offer[]
+  gearOwnerships UserGear[] @relation("UserGearOwner")
+  gearTransfersFrom UserGear[] @relation("UserGearFrom")
+  offers    Offer[] @relation("OfferSeller")
+  purchases Offer[] @relation("OfferBuyer")
 }
 
 model Follower {
@@ -243,42 +242,73 @@ model ManeuverEvent {
   createdAt DateTime @default(now())
 }
 
+model Brand {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  boards   Board[]
+  wetsuits Wetsuit[]
+  fins     Fins[]
+  leashes  Leash[]
+}
+
 model Board {
   id        String   @id @default(uuid())
   name      String
-  brand     String?
+  brandId   String?
   length    Float
   width     Float
   thickness Float
   volume    Float?
-  ownerId   String?
   createdAt DateTime @default(now())
 
-  owner    User? @relation(fields: [ownerId], references: [id])
+  brand    Brand? @relation(fields: [brandId], references: [id])
   sessions Session[]
 }
 
 model Fins {
   id        String   @id @default(uuid())
   name      String
-  brand     String?
+  brandId   String?
   size      String?
-  ownerId   String?
   createdAt DateTime @default(now())
 
-  owner User? @relation(fields: [ownerId], references: [id])
+  brand Brand? @relation(fields: [brandId], references: [id])
 }
 
 model Leash {
   id        String   @id @default(uuid())
   name      String
-  brand     String?
+  brandId   String?
   length    Float?
   thickness Float?
-  ownerId   String?
   createdAt DateTime @default(now())
 
-  owner User? @relation(fields: [ownerId], references: [id])
+  brand Brand? @relation(fields: [brandId], references: [id])
+}
+
+/// Ownership / custody period for a piece of gear (trackable history).
+model UserGear {
+  id          String                 @id @default(uuid())
+  userId      String
+  productId   String
+  productType MarketplaceProductType
+  acquiredAt  DateTime               @default(now())
+  /// Null while this user currently holds the gear
+  releasedAt  DateTime?
+  /// Previous owner when acquired via transfer
+  fromUserId  String?
+  /// Concluded offer that created this ownership record (if any)
+  offerId     String?
+  createdAt   DateTime               @default(now())
+
+  user     User  @relation("UserGearOwner", fields: [userId], references: [id])
+  fromUser User? @relation("UserGearFrom", fields: [fromUserId], references: [id])
+  offer    Offer? @relation(fields: [offerId], references: [id])
+
+  @@index([productType, productId, acquiredAt])
+  @@index([userId, releasedAt])
 }
 
 model Offer {
@@ -291,9 +321,13 @@ model Offer {
   title       String?
   description String?
   active      Boolean                @default(true)
+  buyerId     String?
+  concludedAt DateTime?
   createdAt   DateTime               @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user          User       @relation("OfferSeller", fields: [userId], references: [id])
+  buyer         User?      @relation("OfferBuyer", fields: [buyerId], references: [id])
+  ownershipTransfers UserGear[]
 
   @@index([productType, active])
   @@index([userId, createdAt])
@@ -447,13 +481,12 @@ model SpotData {
 model Wetsuit {
   id        String   @id @default(uuid())
   name      String
-  brand     String?
+  brandId   String?
   size      String?
   thickness Float
-  ownerId   String?
   createdAt DateTime @default(now())
 
-  owner    User? @relation(fields: [ownerId], references: [id])
+  brand    Brand? @relation(fields: [brandId], references: [id])
   sessions Session[]
 }
 

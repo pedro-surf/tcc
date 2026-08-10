@@ -11,10 +11,8 @@ export const UserRef = builder.prismaObject('User', {
     createdAt: t.expose('createdAt', { type: 'DateTime' }),
     followers: t.relation('followers'),
     following: t.relation('following'),
-    boards: t.relation('boards'),
-    wetsuits: t.relation('wetsuits'),
-    fins: t.relation('fins'),
-    leashes: t.relation('leashes'),
+    gearOwnerships: t.relation('gearOwnerships'),
     offers: t.relation('offers'),
+    purchases: t.relation('purchases'),
   }),
 })

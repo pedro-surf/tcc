@@ -5,10 +5,11 @@ import './spot'
 import './spots'
 import './spotForecastsBySpot'
 import './spotTimeline'
+import './leaderboards'
 
 const NAME_FILTER_MODELS = new Set(['User', 'Location', 'Board'])
 /** Custom visibility / marketplace queries */
-const SKIP_AUTO_LIST = new Set(['Spot', 'Offer'])
+const SKIP_AUTO_LIST = new Set(['Spot', 'Offer', 'Brand'])
 
 function registerAllQueries() {
   loadGqlObjects(ref => {

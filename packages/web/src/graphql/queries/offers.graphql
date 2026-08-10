@@ -1,5 +1,15 @@
-query GetOffers($take: Int, $skip: Int, $productType: MarketplaceProductTypeEnum) {
-  offers(take: $take, skip: $skip, productType: $productType) {
+query GetOffers(
+  $take: Int
+  $skip: Int
+  $productType: MarketplaceProductTypeEnum
+  $includeConcluded: Boolean
+) {
+  offers(
+    take: $take
+    skip: $skip
+    productType: $productType
+    includeConcluded: $includeConcluded
+  ) {
     id
     productId
     productType
@@ -8,6 +18,8 @@ query GetOffers($take: Int, $skip: Int, $productType: MarketplaceProductTypeEnum
     currency
     title
     description
+    active
+    concludedAt
     createdAt
     user {
       id
@@ -15,6 +27,25 @@ query GetOffers($take: Int, $skip: Int, $productType: MarketplaceProductTypeEnum
       email
       phone
       location
+    }
+    buyer {
+      id
+      name
+      email
+    }
+    ownershipHistory {
+      id
+      acquiredAt
+      releasedAt
+      isCurrent
+      user {
+        id
+        name
+      }
+      fromUser {
+        id
+        name
+      }
     }
   }
 }

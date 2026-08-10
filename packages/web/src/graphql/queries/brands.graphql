@@ -1,0 +1,6 @@
+query GetBrands($take: Int, $skip: Int, $name: String) {
+  brands(take: $take, skip: $skip, name: $name) {
+    id
+    name
+  }
+}

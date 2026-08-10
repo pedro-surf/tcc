@@ -1,0 +1,27 @@
+mutation ConcludeOffer($offerId: ID!, $buyerEmail: String!) {
+  concludeOffer(offerId: $offerId, buyerEmail: $buyerEmail) {
+    id
+    active
+    concludedAt
+    buyerId
+    buyer {
+      id
+      name
+      email
+    }
+    ownershipHistory {
+      id
+      acquiredAt
+      releasedAt
+      isCurrent
+      user {
+        id
+        name
+      }
+      fromUser {
+        id
+        name
+      }
+    }
+  }
+}

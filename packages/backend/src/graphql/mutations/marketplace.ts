@@ -2,10 +2,13 @@ import { GraphQLError } from 'graphql'
 import {
   Currency,
   MarketplaceProductType,
+  type Prisma,
 } from '@prisma/client'
 import { builder, prisma } from '../builder'
 import { requireUser, type Context } from '../context'
+import { BrandRef } from '../objects/Brand'
 import { OfferRef } from '../objects/Offer'
+import { UserGearRef } from '../objects/UserGear'
 import { UserRef } from '../objects/User'
 import MarketplaceProductTypeEnum from '../enums/MarketplaceProductType'
 import CurrencyEnum from '../enums/Currency'
@@ -19,20 +22,45 @@ const CreateMarketplaceListingInput = builder.inputType(
         required: true,
       }),
       name: t.string({ required: true }),
-      brand: t.string(),
+      brandId: t.string(),
+      brandName: t.string(),
       description: t.string(),
       price: t.float({ required: true }),
       currency: t.field({ type: CurrencyEnum }),
-      // board
       length: t.float(),
       width: t.float(),
       thickness: t.float(),
       volume: t.float(),
-      // wetsuit / fins
       size: t.string(),
     }),
   },
 )
+
+async function resolveBrandId(
+  tx: Prisma.TransactionClient,
+  brandId?: string | null,
+  brandName?: string | null,
+): Promise<string | null> {
+  if (brandId?.trim()) {
+    const existing = await tx.brand.findUnique({
+      where: { id: brandId.trim() },
+      select: { id: true },
+    })
+    if (!existing) throw new GraphQLError('Brand not found')
+    return existing.id
+  }
+
+  const name = brandName?.trim()
+  if (!name) return null
+
+  const upserted = await tx.brand.upsert({
+    where: { name },
+    create: { name },
+    update: {},
+    select: { id: true, name: true },
+  })
+  return upserted.id
+}
 
 builder.mutationField('updateMyProfile', (t) =>
   t.prismaField({
@@ -61,6 +89,26 @@ builder.mutationField('updateMyProfile', (t) =>
   }),
 )
 
+builder.mutationField('createBrand', (t) =>
+  t.prismaField({
+    type: BrandRef,
+    args: {
+      name: t.arg.string({ required: true }),
+    },
+    resolve: async (query, _root, args, ctx: Context) => {
+      requireUser(ctx)
+      const name = args.name.trim()
+      if (!name) throw new GraphQLError('Brand name is required')
+      return prisma.brand.upsert({
+        ...query,
+        where: { name },
+        create: { name },
+        update: {},
+      })
+    },
+  }),
+)
+
 builder.mutationField('createMarketplaceListing', (t) =>
   t.prismaField({
     type: OfferRef,
@@ -76,13 +124,23 @@ builder.mutationField('createMarketplaceListing', (t) =>
       }
 
       const productType = args.data.productType as MarketplaceProductType
-      const brand = args.data.brand?.trim() || null
       const currency = (args.data.currency as Currency | null) ?? Currency.BRL
 
       return prisma.$transaction(async (tx) => {
-        let productId: string
-        let title = [brand, name].filter(Boolean).join(' ')
+        const brandId = await resolveBrandId(
+          tx,
+          args.data.brandId,
+          args.data.brandName,
+        )
+        const brand = brandId
+          ? await tx.brand.findUnique({
+              where: { id: brandId },
+              select: { name: true },
+            })
+          : null
+        const title = [brand?.name, name].filter(Boolean).join(' ')
 
+        let productId: string
         switch (productType) {
           case MarketplaceProductType.BOARD: {
             if (
@@ -97,12 +155,11 @@ builder.mutationField('createMarketplaceListing', (t) =>
             const board = await tx.board.create({
               data: {
                 name,
-                brand,
+                brandId,
                 length: args.data.length,
                 width: args.data.width,
                 thickness: args.data.thickness,
                 volume: args.data.volume ?? null,
-                ownerId: user.id,
               },
             })
             productId = board.id
@@ -115,10 +172,9 @@ builder.mutationField('createMarketplaceListing', (t) =>
             const suit = await tx.wetsuit.create({
               data: {
                 name,
-                brand,
+                brandId,
                 size: args.data.size?.trim() || null,
                 thickness: args.data.thickness,
-                ownerId: user.id,
               },
             })
             productId = suit.id
@@ -128,9 +184,8 @@ builder.mutationField('createMarketplaceListing', (t) =>
             const fins = await tx.fins.create({
               data: {
                 name,
-                brand,
+                brandId,
                 size: args.data.size?.trim() || null,
-                ownerId: user.id,
               },
             })
             productId = fins.id
@@ -140,10 +195,9 @@ builder.mutationField('createMarketplaceListing', (t) =>
             const leash = await tx.leash.create({
               data: {
                 name,
-                brand,
+                brandId,
                 length: args.data.length ?? null,
                 thickness: args.data.thickness ?? null,
-                ownerId: user.id,
               },
             })
             productId = leash.id
@@ -152,6 +206,17 @@ builder.mutationField('createMarketplaceListing', (t) =>
           default:
             throw new GraphQLError('Unsupported product type')
         }
+
+        const acquiredAt = new Date()
+        await tx.userGear.create({
+          data: {
+            userId: user.id,
+            productId,
+            productType,
+            acquiredAt,
+            releasedAt: null,
+          },
+        })
 
         return tx.offer.create({
           ...query,
@@ -171,6 +236,110 @@ builder.mutationField('createMarketplaceListing', (t) =>
   }),
 )
 
+builder.mutationField('concludeOffer', (t) =>
+  t.prismaField({
+    type: OfferRef,
+    args: {
+      offerId: t.arg.id({ required: true }),
+      buyerEmail: t.arg.string({ required: true }),
+    },
+    resolve: async (query, _root, args, ctx: Context) => {
+      const seller = requireUser(ctx)
+      const email = args.buyerEmail.trim().toLowerCase()
+      if (!email) throw new GraphQLError('Buyer email is required')
+
+      const buyer = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      })
+      if (!buyer) throw new GraphQLError('Buyer user not found')
+      if (buyer.id === seller.id) {
+        throw new GraphQLError('Buyer must be a different user')
+      }
+
+      return prisma.$transaction(async (tx) => {
+        const offer = await tx.offer.findUnique({
+          where: { id: String(args.offerId) },
+        })
+        if (!offer) throw new GraphQLError('Offer not found')
+        if (offer.userId !== seller.id) {
+          throw new GraphQLError('Only the seller can conclude this offer')
+        }
+        if (!offer.active || offer.concludedAt) {
+          throw new GraphQLError('Offer is already concluded')
+        }
+
+        const concludedAt = new Date()
+        const current = await tx.userGear.findFirst({
+          where: {
+            productId: offer.productId,
+            productType: offer.productType,
+            releasedAt: null,
+          },
+          orderBy: { acquiredAt: 'desc' },
+        })
+
+        if (current) {
+          if (current.userId !== seller.id) {
+            throw new GraphQLError(
+              'Seller is not the current recorded owner of this gear',
+            )
+          }
+          await tx.userGear.update({
+            where: { id: current.id },
+            data: { releasedAt: concludedAt },
+          })
+        }
+
+        await tx.userGear.create({
+          data: {
+            userId: buyer.id,
+            productId: offer.productId,
+            productType: offer.productType,
+            acquiredAt: concludedAt,
+            releasedAt: null,
+            fromUserId: seller.id,
+            offerId: offer.id,
+          },
+        })
+
+        return tx.offer.update({
+          ...query,
+          where: { id: offer.id },
+          data: {
+            active: false,
+            buyerId: buyer.id,
+            concludedAt,
+          },
+        })
+      })
+    },
+  }),
+)
+
+builder.queryField('brands', (t) =>
+  t.prismaField({
+    type: [BrandRef],
+    args: {
+      take: t.arg.int(),
+      skip: t.arg.int(),
+      name: t.arg.string(),
+    },
+    resolve: async (query, _root, args) => {
+      const name = args.name?.trim()
+      return prisma.brand.findMany({
+        ...query,
+        where: name
+          ? { name: { contains: name, mode: 'insensitive' } }
+          : undefined,
+        orderBy: { name: 'asc' },
+        take: args.take ?? 100,
+        skip: args.skip ?? 0,
+      })
+    },
+  }),
+)
+
 builder.queryField('offers', (t) =>
   t.prismaField({
     type: [OfferRef],
@@ -178,12 +347,13 @@ builder.queryField('offers', (t) =>
       take: t.arg.int(),
       skip: t.arg.int(),
       productType: t.arg({ type: MarketplaceProductTypeEnum }),
+      includeConcluded: t.arg.boolean(),
     },
     resolve: async (query, _root, args) =>
       prisma.offer.findMany({
         ...query,
         where: {
-          active: true,
+          ...(args.includeConcluded ? {} : { active: true }),
           ...(args.productType
             ? { productType: args.productType as MarketplaceProductType }
             : {}),
@@ -191,6 +361,28 @@ builder.queryField('offers', (t) =>
         orderBy: { createdAt: 'desc' },
         take: args.take ?? 50,
         skip: args.skip ?? 0,
+      }),
+  }),
+)
+
+builder.queryField('gearOwnershipHistory', (t) =>
+  t.prismaField({
+    type: [UserGearRef],
+    args: {
+      productId: t.arg.string({ required: true }),
+      productType: t.arg({
+        type: MarketplaceProductTypeEnum,
+        required: true,
+      }),
+    },
+    resolve: async (query, _root, args) =>
+      prisma.userGear.findMany({
+        ...query,
+        where: {
+          productId: args.productId,
+          productType: args.productType as MarketplaceProductType,
+        },
+        orderBy: { acquiredAt: 'asc' },
       }),
   }),
 )

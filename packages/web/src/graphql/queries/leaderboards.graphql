@@ -1,0 +1,58 @@
+query GetLeaderboards($take: Int) {
+  leaderboards(take: $take) {
+    spotChecks {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    sessions {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    spotsCreated {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    competitionsCreated {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    marketplaceActivity {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    followers {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+  }
+}

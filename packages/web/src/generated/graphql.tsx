@@ -41,13 +41,12 @@ export type AuthPayload = {
 
 export type Board = {
   __typename?: 'Board';
-  brand?: Maybe<Scalars['String']['output']>;
+  brand?: Maybe<Brand>;
+  brandId?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   length: Scalars['Float']['output'];
   name: Scalars['String']['output'];
-  owner?: Maybe<User>;
-  ownerId?: Maybe<Scalars['String']['output']>;
   sessions: Array<Session>;
   thickness: Scalars['Float']['output'];
   volume?: Maybe<Scalars['Float']['output']>;
@@ -61,6 +60,17 @@ export const BottomTypeEnum = {
 } as const;
 
 export type BottomTypeEnum = typeof BottomTypeEnum[keyof typeof BottomTypeEnum];
+export type Brand = {
+  __typename?: 'Brand';
+  boards: Array<Board>;
+  createdAt: Scalars['DateTime']['output'];
+  fins: Array<Fins>;
+  id: Scalars['ID']['output'];
+  leashes: Array<Leash>;
+  name: Scalars['String']['output'];
+  wetsuits: Array<Wetsuit>;
+};
+
 export const CountryEnum = {
   Australia: 'AUSTRALIA',
   Brazil: 'BRAZIL',
@@ -71,7 +81,8 @@ export const CountryEnum = {
 
 export type CountryEnum = typeof CountryEnum[keyof typeof CountryEnum];
 export type CreateMarketplaceListingInput = {
-  brand?: InputMaybe<Scalars['String']['input']>;
+  brandId?: InputMaybe<Scalars['String']['input']>;
+  brandName?: InputMaybe<Scalars['String']['input']>;
   currency?: InputMaybe<CurrencyEnum>;
   description?: InputMaybe<Scalars['String']['input']>;
   length?: InputMaybe<Scalars['Float']['input']>;
@@ -102,12 +113,11 @@ export type Device = {
 
 export type Fins = {
   __typename?: 'Fins';
-  brand?: Maybe<Scalars['String']['output']>;
+  brand?: Maybe<Brand>;
+  brandId?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
-  owner?: Maybe<User>;
-  ownerId?: Maybe<Scalars['String']['output']>;
   size?: Maybe<Scalars['String']['output']>;
 };
 
@@ -121,15 +131,32 @@ export type Follower = {
   id: Scalars['ID']['output'];
 };
 
+export type LeaderboardEntry = {
+  __typename?: 'LeaderboardEntry';
+  rank: Scalars['Int']['output'];
+  score: Scalars['Int']['output'];
+  user: User;
+  userId: Scalars['String']['output'];
+};
+
+export type Leaderboards = {
+  __typename?: 'Leaderboards';
+  competitionsCreated: Array<LeaderboardEntry>;
+  followers: Array<LeaderboardEntry>;
+  marketplaceActivity: Array<LeaderboardEntry>;
+  sessions: Array<LeaderboardEntry>;
+  spotChecks: Array<LeaderboardEntry>;
+  spotsCreated: Array<LeaderboardEntry>;
+};
+
 export type Leash = {
   __typename?: 'Leash';
-  brand?: Maybe<Scalars['String']['output']>;
+  brand?: Maybe<Brand>;
+  brandId?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   length?: Maybe<Scalars['Float']['output']>;
   name: Scalars['String']['output'];
-  owner?: Maybe<User>;
-  ownerId?: Maybe<Scalars['String']['output']>;
   thickness?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -190,6 +217,8 @@ export type MediaTypeEnum = typeof MediaTypeEnum[keyof typeof MediaTypeEnum];
 export type Mutation = {
   __typename?: 'Mutation';
   bulkCreateSpotForecast: Array<SpotForecast>;
+  concludeOffer: Offer;
+  createBrand: Brand;
   createLocation: Location;
   createMarketplaceListing: Offer;
   createSpot: Spot;
@@ -207,6 +236,17 @@ export type Mutation = {
 
 export type MutationBulkCreateSpotForecastArgs = {
   data: Array<SpotForecastCreateInput>;
+};
+
+
+export type MutationConcludeOfferArgs = {
+  buyerEmail: Scalars['String']['input'];
+  offerId: Scalars['ID']['input'];
+};
+
+
+export type MutationCreateBrandArgs = {
+  name: Scalars['String']['input'];
 };
 
 
@@ -277,10 +317,14 @@ export type MutationUpdateMyProfileArgs = {
 export type Offer = {
   __typename?: 'Offer';
   active: Scalars['Boolean']['output'];
+  buyer?: Maybe<User>;
+  buyerId?: Maybe<Scalars['String']['output']>;
+  concludedAt?: Maybe<Scalars['DateTime']['output']>;
   createdAt: Scalars['DateTime']['output'];
   currency: CurrencyEnum;
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  ownershipHistory: Array<UserGear>;
   price: Scalars['Float']['output'];
   productId: Scalars['String']['output'];
   productLabel: Scalars['String']['output'];
@@ -293,9 +337,12 @@ export type Offer = {
 export type Query = {
   __typename?: 'Query';
   boards: Array<Board>;
+  brands: Array<Brand>;
   devices: Array<Device>;
   finss: Array<Fins>;
   followers: Array<Follower>;
+  gearOwnershipHistory: Array<UserGear>;
+  leaderboards: Leaderboards;
   leashs: Array<Leash>;
   likes: Array<Like>;
   locations: Array<Location>;
@@ -322,12 +369,20 @@ export type Query = {
   spotmedias: Array<SpotMedia>;
   spots: Array<Spot>;
   spotweeklydescriptions: Array<SpotWeeklyDescription>;
+  usergears: Array<UserGear>;
   users: Array<User>;
   wetsuits: Array<Wetsuit>;
 };
 
 
 export type QueryBoardsArgs = {
+  name?: InputMaybe<Scalars['String']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryBrandsArgs = {
   name?: InputMaybe<Scalars['String']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -348,6 +403,17 @@ export type QueryFinssArgs = {
 
 export type QueryFollowersArgs = {
   skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryGearOwnershipHistoryArgs = {
+  productId: Scalars['String']['input'];
+  productType: MarketplaceProductTypeEnum;
+};
+
+
+export type QueryLeaderboardsArgs = {
   take?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -378,6 +444,7 @@ export type QueryManeuvereventsArgs = {
 
 
 export type QueryOffersArgs = {
+  includeConcluded?: InputMaybe<Scalars['Boolean']['input']>;
   productType?: InputMaybe<MarketplaceProductTypeEnum>;
   skip?: InputMaybe<Scalars['Int']['input']>;
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -496,6 +563,12 @@ export type QuerySpotsArgs = {
 
 
 export type QuerySpotweeklydescriptionsArgs = {
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryUsergearsArgs = {
   skip?: InputMaybe<Scalars['Int']['input']>;
   take?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -811,19 +884,34 @@ export type SpotWeeklyDescription = {
 export type User = {
   __typename?: 'User';
   bio?: Maybe<Scalars['String']['output']>;
-  boards: Array<Board>;
   createdAt: Scalars['DateTime']['output'];
   email: Scalars['String']['output'];
-  fins: Array<Fins>;
   followers: Array<Follower>;
   following: Array<Follower>;
+  gearOwnerships: Array<UserGear>;
   id: Scalars['ID']['output'];
-  leashes: Array<Leash>;
   location?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   offers: Array<Offer>;
   phone?: Maybe<Scalars['String']['output']>;
-  wetsuits: Array<Wetsuit>;
+  purchases: Array<Offer>;
+};
+
+export type UserGear = {
+  __typename?: 'UserGear';
+  acquiredAt: Scalars['DateTime']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  fromUser?: Maybe<User>;
+  fromUserId?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isCurrent: Scalars['Boolean']['output'];
+  offer?: Maybe<Offer>;
+  offerId?: Maybe<Scalars['String']['output']>;
+  productId: Scalars['String']['output'];
+  productType: MarketplaceProductTypeEnum;
+  releasedAt?: Maybe<Scalars['DateTime']['output']>;
+  user: User;
+  userId: Scalars['String']['output'];
 };
 
 export const WaveTypeEnum = {
@@ -837,12 +925,11 @@ export const WaveTypeEnum = {
 export type WaveTypeEnum = typeof WaveTypeEnum[keyof typeof WaveTypeEnum];
 export type Wetsuit = {
   __typename?: 'Wetsuit';
-  brand?: Maybe<Scalars['String']['output']>;
+  brand?: Maybe<Brand>;
+  brandId?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
-  owner?: Maybe<User>;
-  ownerId?: Maybe<Scalars['String']['output']>;
   sessions: Array<Session>;
   size?: Maybe<Scalars['String']['output']>;
   thickness: Scalars['Float']['output'];
@@ -855,12 +942,20 @@ export type BulkCreateSpotForecastMutationVariables = Exact<{
 
 export type BulkCreateSpotForecastMutation = { __typename?: 'Mutation', bulkCreateSpotForecast: Array<{ __typename?: 'SpotForecast', id: string, ideal: boolean }> };
 
+export type ConcludeOfferMutationVariables = Exact<{
+  offerId: Scalars['ID']['input'];
+  buyerEmail: Scalars['String']['input'];
+}>;
+
+
+export type ConcludeOfferMutation = { __typename?: 'Mutation', concludeOffer: { __typename?: 'Offer', id: string, active: boolean, concludedAt?: any | null, buyerId?: string | null, buyer?: { __typename?: 'User', id: string, name: string, email: string } | null, ownershipHistory: Array<{ __typename?: 'UserGear', id: string, acquiredAt: any, releasedAt?: any | null, isCurrent: boolean, user: { __typename?: 'User', id: string, name: string }, fromUser?: { __typename?: 'User', id: string, name: string } | null }> } };
+
 export type CreateMarketplaceListingMutationVariables = Exact<{
   data: CreateMarketplaceListingInput;
 }>;
 
 
-export type CreateMarketplaceListingMutation = { __typename?: 'Mutation', createMarketplaceListing: { __typename?: 'Offer', id: string, productType: MarketplaceProductTypeEnum, productLabel: string, price: number, currency: CurrencyEnum, title?: string | null, description?: string | null } };
+export type CreateMarketplaceListingMutation = { __typename?: 'Mutation', createMarketplaceListing: { __typename?: 'Offer', id: string, productType: MarketplaceProductTypeEnum, productLabel: string, price: number, currency: CurrencyEnum, title?: string | null, description?: string | null, active: boolean } };
 
 export type CreateSpotMutationVariables = Exact<{
   data: SpotCreateInput;
@@ -930,12 +1025,28 @@ export type UpdateMyProfileMutationVariables = Exact<{
 
 export type UpdateMyProfileMutation = { __typename?: 'Mutation', updateMyProfile: { __typename?: 'User', id: string, name: string, email: string, location?: string | null, phone?: string | null, bio?: string | null } };
 
+export type GetBrandsQueryVariables = Exact<{
+  take?: InputMaybe<Scalars['Int']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type GetBrandsQuery = { __typename?: 'Query', brands: Array<{ __typename?: 'Brand', id: string, name: string }> };
+
 export type GetSpotQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
 export type GetSpotQuery = { __typename?: 'Query', spot?: { __typename?: 'Spot', id: string, name: string, description?: string | null, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, strongSwellTolerance?: number | null, strongWindTolerance?: number | null, weeklyGeneratedDescription?: string | null, weeklyGeneratedAt?: any | null, canGenerateWeeklyDescription: boolean, secret: boolean, mapsUrl: string, createdAt: any, media: Array<{ __typename?: 'SpotMedia', id: string, mediaUrl: string, mediaType: MediaTypeEnum, mimeType?: string | null }>, weeklyDescriptions: Array<{ __typename?: 'SpotWeeklyDescription', id: string, description: string, generatedAt: any, weekStart: any, primaryForecastId?: string | null, primaryForecast?: { __typename?: 'SpotForecast', id: string, timestamp?: any | null, swell: number, wind: number, ideal: boolean, score?: number | null } | null }> } | null };
+
+export type GetLeaderboardsQueryVariables = Exact<{
+  take?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type GetLeaderboardsQuery = { __typename?: 'Query', leaderboards: { __typename?: 'Leaderboards', spotChecks: Array<{ __typename?: 'LeaderboardEntry', rank: number, score: number, user: { __typename?: 'User', id: string, name: string, location?: string | null } }>, sessions: Array<{ __typename?: 'LeaderboardEntry', rank: number, score: number, user: { __typename?: 'User', id: string, name: string, location?: string | null } }>, spotsCreated: Array<{ __typename?: 'LeaderboardEntry', rank: number, score: number, user: { __typename?: 'User', id: string, name: string, location?: string | null } }>, competitionsCreated: Array<{ __typename?: 'LeaderboardEntry', rank: number, score: number, user: { __typename?: 'User', id: string, name: string, location?: string | null } }>, marketplaceActivity: Array<{ __typename?: 'LeaderboardEntry', rank: number, score: number, user: { __typename?: 'User', id: string, name: string, location?: string | null } }>, followers: Array<{ __typename?: 'LeaderboardEntry', rank: number, score: number, user: { __typename?: 'User', id: string, name: string, location?: string | null } }> } };
 
 export type GetLocationsQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -960,10 +1071,11 @@ export type GetOffersQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
   productType?: InputMaybe<MarketplaceProductTypeEnum>;
+  includeConcluded?: InputMaybe<Scalars['Boolean']['input']>;
 }>;
 
 
-export type GetOffersQuery = { __typename?: 'Query', offers: Array<{ __typename?: 'Offer', id: string, productId: string, productType: MarketplaceProductTypeEnum, productLabel: string, price: number, currency: CurrencyEnum, title?: string | null, description?: string | null, createdAt: any, user: { __typename?: 'User', id: string, name: string, email: string, phone?: string | null, location?: string | null } }> };
+export type GetOffersQuery = { __typename?: 'Query', offers: Array<{ __typename?: 'Offer', id: string, productId: string, productType: MarketplaceProductTypeEnum, productLabel: string, price: number, currency: CurrencyEnum, title?: string | null, description?: string | null, active: boolean, concludedAt?: any | null, createdAt: any, user: { __typename?: 'User', id: string, name: string, email: string, phone?: string | null, location?: string | null }, buyer?: { __typename?: 'User', id: string, name: string, email: string } | null, ownershipHistory: Array<{ __typename?: 'UserGear', id: string, acquiredAt: any, releasedAt?: any | null, isCurrent: boolean, user: { __typename?: 'User', id: string, name: string }, fromUser?: { __typename?: 'User', id: string, name: string } | null }> }> };
 
 export type GetSpotChecksQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -1044,6 +1156,51 @@ export const useBulkCreateSpotForecastMutation = <
 
 useBulkCreateSpotForecastMutation.getKey = () => ['BulkCreateSpotForecast'];
 
+export const ConcludeOfferDocument = /*#__PURE__*/ new TypedDocumentString(`
+    mutation ConcludeOffer($offerId: ID!, $buyerEmail: String!) {
+  concludeOffer(offerId: $offerId, buyerEmail: $buyerEmail) {
+    id
+    active
+    concludedAt
+    buyerId
+    buyer {
+      id
+      name
+      email
+    }
+    ownershipHistory {
+      id
+      acquiredAt
+      releasedAt
+      isCurrent
+      user {
+        id
+        name
+      }
+      fromUser {
+        id
+        name
+      }
+    }
+  }
+}
+    `);
+
+export const useConcludeOfferMutation = <
+      TError = unknown,
+      TContext = unknown
+    >(options?: UseMutationOptions<ConcludeOfferMutation, TError, ConcludeOfferMutationVariables, TContext>) => {
+    
+    return useMutation<ConcludeOfferMutation, TError, ConcludeOfferMutationVariables, TContext>(
+      {
+    mutationKey: ['ConcludeOffer'],
+    mutationFn: (variables?: ConcludeOfferMutationVariables) => fetcher<ConcludeOfferMutation, ConcludeOfferMutationVariables>(ConcludeOfferDocument, variables)(),
+    ...options
+  }
+    )};
+
+useConcludeOfferMutation.getKey = () => ['ConcludeOffer'];
+
 export const CreateMarketplaceListingDocument = /*#__PURE__*/ new TypedDocumentString(`
     mutation CreateMarketplaceListing($data: CreateMarketplaceListingInput!) {
   createMarketplaceListing(data: $data) {
@@ -1054,6 +1211,7 @@ export const CreateMarketplaceListingDocument = /*#__PURE__*/ new TypedDocumentS
     currency
     title
     description
+    active
   }
 }
     `);
@@ -1350,6 +1508,33 @@ export const useUpdateMyProfileMutation = <
 
 useUpdateMyProfileMutation.getKey = () => ['UpdateMyProfile'];
 
+export const GetBrandsDocument = /*#__PURE__*/ new TypedDocumentString(`
+    query GetBrands($take: Int, $skip: Int, $name: String) {
+  brands(take: $take, skip: $skip, name: $name) {
+    id
+    name
+  }
+}
+    `);
+
+export const useGetBrandsQuery = <
+      TData = GetBrandsQuery,
+      TError = unknown
+    >(
+      variables?: GetBrandsQueryVariables,
+      options?: Omit<UseQueryOptions<GetBrandsQuery, TError, TData>, 'queryKey'> & { queryKey?: UseQueryOptions<GetBrandsQuery, TError, TData>['queryKey'] }
+    ) => {
+    
+    return useQuery<GetBrandsQuery, TError, TData>(
+      {
+    queryKey: variables === undefined ? ['GetBrands'] : ['GetBrands', variables],
+    queryFn: fetcher<GetBrandsQuery, GetBrandsQueryVariables>(GetBrandsDocument, variables),
+    ...options
+  }
+    )};
+
+useGetBrandsQuery.getKey = (variables?: GetBrandsQueryVariables) => variables === undefined ? ['GetBrands'] : ['GetBrands', variables];
+
 export const GetSpotDocument = /*#__PURE__*/ new TypedDocumentString(`
     query GetSpot($id: ID!) {
   spot(id: $id) {
@@ -1415,6 +1600,85 @@ export const useGetSpotQuery = <
     )};
 
 useGetSpotQuery.getKey = (variables: GetSpotQueryVariables) => ['GetSpot', variables];
+
+export const GetLeaderboardsDocument = /*#__PURE__*/ new TypedDocumentString(`
+    query GetLeaderboards($take: Int) {
+  leaderboards(take: $take) {
+    spotChecks {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    sessions {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    spotsCreated {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    competitionsCreated {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    marketplaceActivity {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+    followers {
+      rank
+      score
+      user {
+        id
+        name
+        location
+      }
+    }
+  }
+}
+    `);
+
+export const useGetLeaderboardsQuery = <
+      TData = GetLeaderboardsQuery,
+      TError = unknown
+    >(
+      variables?: GetLeaderboardsQueryVariables,
+      options?: Omit<UseQueryOptions<GetLeaderboardsQuery, TError, TData>, 'queryKey'> & { queryKey?: UseQueryOptions<GetLeaderboardsQuery, TError, TData>['queryKey'] }
+    ) => {
+    
+    return useQuery<GetLeaderboardsQuery, TError, TData>(
+      {
+    queryKey: variables === undefined ? ['GetLeaderboards'] : ['GetLeaderboards', variables],
+    queryFn: fetcher<GetLeaderboardsQuery, GetLeaderboardsQueryVariables>(GetLeaderboardsDocument, variables),
+    ...options
+  }
+    )};
+
+useGetLeaderboardsQuery.getKey = (variables?: GetLeaderboardsQueryVariables) => variables === undefined ? ['GetLeaderboards'] : ['GetLeaderboards', variables];
 
 export const GetLocationsDocument = /*#__PURE__*/ new TypedDocumentString(`
     query GetLocations($take: Int, $skip: Int, $name: String) {
@@ -1507,8 +1771,13 @@ export const useMyFriendsQuery = <
 useMyFriendsQuery.getKey = (variables?: MyFriendsQueryVariables) => variables === undefined ? ['MyFriends'] : ['MyFriends', variables];
 
 export const GetOffersDocument = /*#__PURE__*/ new TypedDocumentString(`
-    query GetOffers($take: Int, $skip: Int, $productType: MarketplaceProductTypeEnum) {
-  offers(take: $take, skip: $skip, productType: $productType) {
+    query GetOffers($take: Int, $skip: Int, $productType: MarketplaceProductTypeEnum, $includeConcluded: Boolean) {
+  offers(
+    take: $take
+    skip: $skip
+    productType: $productType
+    includeConcluded: $includeConcluded
+  ) {
     id
     productId
     productType
@@ -1517,6 +1786,8 @@ export const GetOffersDocument = /*#__PURE__*/ new TypedDocumentString(`
     currency
     title
     description
+    active
+    concludedAt
     createdAt
     user {
       id
@@ -1524,6 +1795,25 @@ export const GetOffersDocument = /*#__PURE__*/ new TypedDocumentString(`
       email
       phone
       location
+    }
+    buyer {
+      id
+      name
+      email
+    }
+    ownershipHistory {
+      id
+      acquiredAt
+      releasedAt
+      isCurrent
+      user {
+        id
+        name
+      }
+      fromUser {
+        id
+        name
+      }
     }
   }
 }
