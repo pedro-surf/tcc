@@ -123,6 +123,65 @@
   color: #64748b;
 }
 
+.spot-details__weekly-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.spot-details__weekly-head h2 {
+  margin-bottom: 6px;
+}
+
+.spot-details__weekly-body {
+  white-space: pre-wrap;
+  margin-top: 10px !important;
+}
+
+.spot-details__weekly-history {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.spot-details__weekly-history h3 {
+  margin: 0 0 10px;
+  font-size: 0.98rem;
+  color: #0f172a;
+}
+
+.spot-details__weekly-history ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spot-details__weekly-history li {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.spot-details__weekly-history-meta {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.spot-details__weekly-history p {
+  margin: 0;
+  white-space: pre-wrap;
+  color: #475569;
+  line-height: 1.5;
+}
+
 .spot-details__section p {
   margin: 0;
   color: #475569;

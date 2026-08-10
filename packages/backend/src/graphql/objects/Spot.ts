@@ -1,3 +1,4 @@
+import { WEEKLY_DESCRIPTION_COOLDOWN_MS } from '../../ai/weeklySpotDescription'
 import { builder } from '../builder'
 import BottomTypeEnum from '../enums/BottomType'
 import CountryEnum from '../enums/Country'
@@ -23,6 +24,21 @@ export const SpotRef = builder.prismaObject('Spot', {
     strongWindTolerance: t.exposeInt('strongWindTolerance', {
       nullable: true,
     }),
+    weeklyGeneratedDescription: t.exposeString('weeklyGeneratedDescription', {
+      nullable: true,
+    }),
+    weeklyGeneratedAt: t.expose('weeklyGeneratedAt', {
+      type: 'DateTime',
+      nullable: true,
+    }),
+    canGenerateWeeklyDescription: t.boolean({
+      resolve: (spot) => {
+        if (!spot.weeklyGeneratedAt) return true
+        const elapsed =
+          Date.now() - new Date(spot.weeklyGeneratedAt).getTime()
+        return elapsed >= WEEKLY_DESCRIPTION_COOLDOWN_MS
+      },
+    }),
     createdById: t.exposeString('createdById', { nullable: true }),
     mapsUrl: t.string({
       resolve: (spot) => {
@@ -38,6 +54,17 @@ export const SpotRef = builder.prismaObject('Spot', {
     forecasts: t.relation('forecasts'),
     data: t.relation('data'),
     media: t.relation('media'),
+    weeklyDescriptions: t.relation('weeklyDescriptions', {
+      args: {
+        take: t.arg.int(),
+        skip: t.arg.int(),
+      },
+      query: (args) => ({
+        orderBy: { generatedAt: 'desc' },
+        take: args.take ?? 20,
+        skip: args.skip ?? 0,
+      }),
+    }),
     createdBy: t.relation('createdBy', { nullable: true }),
   }),
 })

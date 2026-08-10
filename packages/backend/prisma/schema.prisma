@@ -117,6 +117,10 @@ model Spot {
   strongSwellTolerance Int?
   /// How well the spot tolerates strong wind (1–5)
   strongWindTolerance  Int?
+  /// AI weekly outlook combining forecast + spot characteristics
+  weeklyGeneratedDescription String?
+  /// When weeklyGeneratedDescription was last produced
+  weeklyGeneratedAt DateTime?
   createdById   String?
 
   createdAt   DateTime @default(now())
@@ -130,6 +134,24 @@ model Spot {
   competitions   SpotCompetition[]
   data           SpotData[]
   media          SpotMedia[]
+  weeklyDescriptions SpotWeeklyDescription[]
+}
+
+/// Historical AI weekly outlooks for a spot (Spot.weeklyGenerated* is the latest cache).
+model SpotWeeklyDescription {
+  id          String   @id @default(uuid())
+  spotId      String
+  description String
+  generatedAt DateTime @default(now())
+  /// Start of the week this outlook covers (UTC Monday 00:00)
+  weekStart   DateTime
+  /// Optional representative forecast used for that week (best ideal / newest)
+  primaryForecastId String?
+
+  spot            Spot         @relation(fields: [spotId], references: [id])
+  primaryForecast SpotForecast? @relation(fields: [primaryForecastId], references: [id])
+
+  @@index([spotId, generatedAt])
 }
 
 model SpotMedia {
@@ -257,6 +279,7 @@ model SpotForecast {
   spot        Spot? @relation(fields: [spotId], references: [id])
   user        User @relation(fields: [userId], references: [id])
   location    Location? @relation(fields: [locationId], references: [id])
+  weeklyDescriptions SpotWeeklyDescription[]
 
   @@unique([spotId, userId, timestamp])
 }

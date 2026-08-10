@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import express from 'express'
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { createYoga } from 'graphql-yoga'
@@ -6,6 +7,7 @@ import { schema } from './graphql/schema'
 import { createContext } from './graphql/context'
 import { loggingPlugin } from './graphql/logging'
 import { uploadRouter, UPLOAD_DIR } from './rest/upload'
+import { spotWeeklyDescriptionRouter } from './rest/spotWeeklyDescription'
 
 const app = express()
 
@@ -46,6 +48,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use('/uploads', express.static(UPLOAD_DIR))
 app.use('/upload', uploadRouter)
+app.use('/spots', spotWeeklyDescriptionRouter)
 
 const yoga = createYoga<{
   req: Request
@@ -63,5 +66,8 @@ app.listen(port, () => {
   console.log(`Visit http://localhost:${port}/graphql`)
   console.log(`Uploads: http://localhost:${port}/upload`)
   console.log(`Static:  http://localhost:${port}/uploads`)
+  console.log(
+    `Weekly AI: POST http://localhost:${port}/spots/:spotId/weekly-description`,
+  )
   console.log(`Upload dir: ${path.resolve(UPLOAD_DIR)}`)
 })

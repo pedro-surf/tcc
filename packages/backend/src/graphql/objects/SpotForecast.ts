@@ -21,5 +21,6 @@ export const SpotForecastRef = builder.prismaObject('SpotForecast', {
     spot: t.relation('spot', { nullable: true }),
     user: t.relation('user'),
     location: t.relation('location', { nullable: true }),
+    weeklyDescriptions: t.relation('weeklyDescriptions'),
   }),
 });

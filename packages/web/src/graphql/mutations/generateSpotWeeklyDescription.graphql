@@ -1,0 +1,23 @@
+mutation GenerateSpotWeeklyDescription($spotId: ID!) {
+  generateSpotWeeklyDescription(spotId: $spotId) {
+    id
+    weeklyGeneratedDescription
+    weeklyGeneratedAt
+    canGenerateWeeklyDescription
+    weeklyDescriptions(take: 12) {
+      id
+      description
+      generatedAt
+      weekStart
+      primaryForecastId
+      primaryForecast {
+        id
+        timestamp
+        swell
+        wind
+        ideal
+        score
+      }
+    }
+  }
+}

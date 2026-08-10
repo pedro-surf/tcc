@@ -6,6 +6,7 @@ import '../../WindRose.css'
 import { useAuth } from '../../auth/AuthContext'
 import { mediaAbsoluteUrl } from '../../graphql/client'
 import {
+  useGenerateSpotWeeklyDescriptionMutation,
   useGetSpotQuery,
   useSpotChecksBySpotQuery,
   useSpotCompetitionsBySpotQuery,
@@ -38,11 +39,25 @@ export function SpotDetailsPage() {
   const { spotId = '' } = useParams()
   const { isAuthenticated } = useAuth()
   const [panel, setPanel] = useState<'none' | 'check' | 'event'>('none')
+  const [aiError, setAiError] = useState<string | null>(null)
 
   const spotQuery = useGetSpotQuery(
     { id: spotId },
     { enabled: Boolean(spotId) },
   )
+  const generateWeekly = useGenerateSpotWeeklyDescriptionMutation({
+    onSuccess: async () => {
+      setAiError(null)
+      await spotQuery.refetch()
+    },
+    onError: (error) => {
+      setAiError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate weekly description',
+      )
+    },
+  })
   const forecastsQuery = useSpotForecastsBySpotQuery(
     { spotId, take: 24 },
     { enabled: Boolean(spotId) },
@@ -253,6 +268,91 @@ export function SpotDetailsPage() {
             value={spot.idealSwellDir ?? 180}
           />
         </div>
+      </section>
+
+      <section className="spot-details__section">
+        <div className="spot-details__weekly-head">
+          <div>
+            <h2>Weekly AI outlook</h2>
+            <p className="spot-details__hint">
+              Combines forecast rows with ideal directions and strong
+              wind/swell tolerance. Regenerates at most once per week.
+            </p>
+          </div>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={
+                !spot.canGenerateWeeklyDescription || generateWeekly.isPending
+              }
+              onClick={() => {
+                setAiError(null)
+                generateWeekly.mutate({ spotId: spot.id })
+              }}
+            >
+              {generateWeekly.isPending
+                ? 'Generating…'
+                : spot.canGenerateWeeklyDescription
+                  ? 'Generate with AI'
+                  : 'Available in a week'}
+            </button>
+          ) : (
+            <Link to="/" className="btn btn-secondary">
+              Sign in to generate
+            </Link>
+          )}
+        </div>
+        {spot.weeklyGeneratedAt ? (
+          <p className="spot-details__media-caption">
+            Last generated{' '}
+            {new Date(spot.weeklyGeneratedAt).toLocaleString()}
+          </p>
+        ) : null}
+        {spot.weeklyGeneratedDescription?.trim() ? (
+          <p className="spot-details__weekly-body">
+            {spot.weeklyGeneratedDescription}
+          </p>
+        ) : (
+          <p>No weekly AI description yet.</p>
+        )}
+        {aiError ? (
+          <p className="form-status form-status--error">{aiError}</p>
+        ) : null}
+
+        {(spot.weeklyDescriptions?.length ?? 0) > 1 ? (
+          <div className="spot-details__weekly-history">
+            <h3>Previous weeks</h3>
+            <ul>
+              {spot.weeklyDescriptions
+                .filter(
+                  (item) =>
+                    item.description !== spot.weeklyGeneratedDescription ||
+                    new Date(item.generatedAt).getTime() !==
+                      new Date(spot.weeklyGeneratedAt ?? 0).getTime(),
+                )
+                .map((item) => (
+                  <li key={item.id}>
+                    <div className="spot-details__weekly-history-meta">
+                      Week of{' '}
+                      {new Date(item.weekStart).toLocaleDateString()}
+                      {' · '}
+                      {new Date(item.generatedAt).toLocaleString()}
+                      {item.primaryForecast ? (
+                        <>
+                          {' · '}forecast{' '}
+                          {item.primaryForecast.swell}m swell /{' '}
+                          {item.primaryForecast.wind} wind
+                          {item.primaryForecast.ideal ? ' · ideal' : ''}
+                        </>
+                      ) : null}
+                    </div>
+                    <p>{item.description}</p>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       <section className="spot-details__section">

@@ -141,6 +141,7 @@ export type Mutation = {
   createSpotCompetition: SpotCompetition;
   createSpotForecast: SpotForecast;
   followUser: Follower;
+  generateSpotWeeklyDescription: Spot;
   login: AuthPayload;
   register: AuthPayload;
   unfollowUser: Scalars['Boolean']['output'];
@@ -179,6 +180,11 @@ export type MutationCreateSpotForecastArgs = {
 
 export type MutationFollowUserArgs = {
   userId: Scalars['String']['input'];
+};
+
+
+export type MutationGenerateSpotWeeklyDescriptionArgs = {
+  spotId: Scalars['ID']['input'];
 };
 
 
@@ -227,6 +233,7 @@ export type Query = {
   spotforecasts: Array<SpotForecast>;
   spotmedias: Array<SpotMedia>;
   spots: Array<Spot>;
+  spotweeklydescriptions: Array<SpotWeeklyDescription>;
   users: Array<User>;
   wetsuits: Array<Wetsuit>;
 };
@@ -381,6 +388,12 @@ export type QuerySpotsArgs = {
 };
 
 
+export type QuerySpotweeklydescriptionsArgs = {
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QueryUsersArgs = {
   name?: InputMaybe<Scalars['String']['input']>;
   skip?: InputMaybe<Scalars['Int']['input']>;
@@ -485,6 +498,7 @@ export type Spot = {
   __typename?: 'Spot';
   accesses: Array<SpotAccess>;
   bottomType: BottomTypeEnum;
+  canGenerateWeeklyDescription: Scalars['Boolean']['output'];
   checks: Array<SpotCheck>;
   competitions: Array<SpotCompetition>;
   country: CountryEnum;
@@ -509,6 +523,15 @@ export type Spot = {
   strongSwellTolerance?: Maybe<Scalars['Int']['output']>;
   strongWindTolerance?: Maybe<Scalars['Int']['output']>;
   waveType: WaveTypeEnum;
+  weeklyDescriptions: Array<SpotWeeklyDescription>;
+  weeklyGeneratedAt?: Maybe<Scalars['DateTime']['output']>;
+  weeklyGeneratedDescription?: Maybe<Scalars['String']['output']>;
+};
+
+
+export type SpotWeeklyDescriptionsArgs = {
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type SpotAccess = {
@@ -627,6 +650,7 @@ export type SpotForecast = {
   timestamp?: Maybe<Scalars['DateTime']['output']>;
   user: User;
   userId: Scalars['String']['output'];
+  weeklyDescriptions: Array<SpotWeeklyDescription>;
   wind: Scalars['Float']['output'];
   windDir: Scalars['Float']['output'];
 };
@@ -663,6 +687,18 @@ export type SpotMediaInput = {
   mediaType: MediaTypeEnum;
   mediaUrl: Scalars['String']['input'];
   mimeType?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type SpotWeeklyDescription = {
+  __typename?: 'SpotWeeklyDescription';
+  description: Scalars['String']['output'];
+  generatedAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  primaryForecast?: Maybe<SpotForecast>;
+  primaryForecastId?: Maybe<Scalars['String']['output']>;
+  spot: Spot;
+  spotId: Scalars['String']['output'];
+  weekStart: Scalars['DateTime']['output'];
 };
 
 export type User = {
@@ -728,6 +764,13 @@ export type FollowUserMutationVariables = Exact<{
 
 export type FollowUserMutation = { __typename?: 'Mutation', followUser: { __typename?: 'Follower', id: string, followingId: string } };
 
+export type GenerateSpotWeeklyDescriptionMutationVariables = Exact<{
+  spotId: Scalars['ID']['input'];
+}>;
+
+
+export type GenerateSpotWeeklyDescriptionMutation = { __typename?: 'Mutation', generateSpotWeeklyDescription: { __typename?: 'Spot', id: string, weeklyGeneratedDescription?: string | null, weeklyGeneratedAt?: any | null, canGenerateWeeklyDescription: boolean, weeklyDescriptions: Array<{ __typename?: 'SpotWeeklyDescription', id: string, description: string, generatedAt: any, weekStart: any, primaryForecastId?: string | null, primaryForecast?: { __typename?: 'SpotForecast', id: string, timestamp?: any | null, swell: number, wind: number, ideal: boolean, score?: number | null } | null }> } };
+
 export type LoginMutationVariables = Exact<{
   email: Scalars['String']['input'];
   password: Scalars['String']['input'];
@@ -757,7 +800,7 @@ export type GetSpotQueryVariables = Exact<{
 }>;
 
 
-export type GetSpotQuery = { __typename?: 'Query', spot?: { __typename?: 'Spot', id: string, name: string, description?: string | null, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, strongSwellTolerance?: number | null, strongWindTolerance?: number | null, secret: boolean, mapsUrl: string, createdAt: any, media: Array<{ __typename?: 'SpotMedia', id: string, mediaUrl: string, mediaType: MediaTypeEnum, mimeType?: string | null }> } | null };
+export type GetSpotQuery = { __typename?: 'Query', spot?: { __typename?: 'Spot', id: string, name: string, description?: string | null, lat: number, lng: number, waveType: WaveTypeEnum, bottomType: BottomTypeEnum, country: CountryEnum, locationId: string, difficulty?: string | null, idealWindDir?: number | null, idealSwellDir?: number | null, strongSwellTolerance?: number | null, strongWindTolerance?: number | null, weeklyGeneratedDescription?: string | null, weeklyGeneratedAt?: any | null, canGenerateWeeklyDescription: boolean, secret: boolean, mapsUrl: string, createdAt: any, media: Array<{ __typename?: 'SpotMedia', id: string, mediaUrl: string, mediaType: MediaTypeEnum, mimeType?: string | null }>, weeklyDescriptions: Array<{ __typename?: 'SpotWeeklyDescription', id: string, description: string, generatedAt: any, weekStart: any, primaryForecastId?: string | null, primaryForecast?: { __typename?: 'SpotForecast', id: string, timestamp?: any | null, swell: number, wind: number, ideal: boolean, score?: number | null } | null }> } | null };
 
 export type GetLocationsQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -986,6 +1029,47 @@ export const useFollowUserMutation = <
 
 useFollowUserMutation.getKey = () => ['FollowUser'];
 
+export const GenerateSpotWeeklyDescriptionDocument = /*#__PURE__*/ new TypedDocumentString(`
+    mutation GenerateSpotWeeklyDescription($spotId: ID!) {
+  generateSpotWeeklyDescription(spotId: $spotId) {
+    id
+    weeklyGeneratedDescription
+    weeklyGeneratedAt
+    canGenerateWeeklyDescription
+    weeklyDescriptions(take: 12) {
+      id
+      description
+      generatedAt
+      weekStart
+      primaryForecastId
+      primaryForecast {
+        id
+        timestamp
+        swell
+        wind
+        ideal
+        score
+      }
+    }
+  }
+}
+    `);
+
+export const useGenerateSpotWeeklyDescriptionMutation = <
+      TError = unknown,
+      TContext = unknown
+    >(options?: UseMutationOptions<GenerateSpotWeeklyDescriptionMutation, TError, GenerateSpotWeeklyDescriptionMutationVariables, TContext>) => {
+    
+    return useMutation<GenerateSpotWeeklyDescriptionMutation, TError, GenerateSpotWeeklyDescriptionMutationVariables, TContext>(
+      {
+    mutationKey: ['GenerateSpotWeeklyDescription'],
+    mutationFn: (variables?: GenerateSpotWeeklyDescriptionMutationVariables) => fetcher<GenerateSpotWeeklyDescriptionMutation, GenerateSpotWeeklyDescriptionMutationVariables>(GenerateSpotWeeklyDescriptionDocument, variables)(),
+    ...options
+  }
+    )};
+
+useGenerateSpotWeeklyDescriptionMutation.getKey = () => ['GenerateSpotWeeklyDescription'];
+
 export const LoginDocument = /*#__PURE__*/ new TypedDocumentString(`
     mutation Login($email: String!, $password: String!) {
   login(email: $email, password: $password) {
@@ -1082,6 +1166,9 @@ export const GetSpotDocument = /*#__PURE__*/ new TypedDocumentString(`
     idealSwellDir
     strongSwellTolerance
     strongWindTolerance
+    weeklyGeneratedDescription
+    weeklyGeneratedAt
+    canGenerateWeeklyDescription
     secret
     mapsUrl
     createdAt
@@ -1090,6 +1177,21 @@ export const GetSpotDocument = /*#__PURE__*/ new TypedDocumentString(`
       mediaUrl
       mediaType
       mimeType
+    }
+    weeklyDescriptions(take: 12) {
+      id
+      description
+      generatedAt
+      weekStart
+      primaryForecastId
+      primaryForecast {
+        id
+        timestamp
+        swell
+        wind
+        ideal
+        score
+      }
     }
   }
 }
