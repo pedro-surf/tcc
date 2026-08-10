@@ -1,0 +1,157 @@
+.marketplace {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 32px;
+}
+
+.marketplace__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.marketplace__header h1 {
+  margin: 0 0 6px;
+}
+
+.marketplace__header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.marketplace__section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.marketplace__section h2 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+}
+
+.marketplace__hint {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.marketplace__profile-form,
+.marketplace__sell-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.marketplace__profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.marketplace__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.marketplace__list-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.marketplace__list-head h2 {
+  margin: 0;
+}
+
+.marketplace__filter {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  background: #fff;
+}
+
+.marketplace__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.marketplace__card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.marketplace__card.is-open {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+}
+
+.marketplace__card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.marketplace__card-meta {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.marketplace__card p {
+  margin: 8px 0 0;
+  color: #475569;
+}
+
+.marketplace__contact {
+  margin-top: 8px;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.marketplace__contact h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.marketplace__contact p {
+  margin: 0 0 4px;
+  color: #334155;
+}
+
+.marketplace__contact a {
+  color: #0369a1;
+}
+
+@media (max-width: 720px) {
+  .marketplace__profile-form,
+  .marketplace__grid {
+    grid-template-columns: 1fr;
+  }
+}

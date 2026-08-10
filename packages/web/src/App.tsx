@@ -121,6 +121,14 @@ function App({ children }: Props) {
           >
             Friends
           </Link>
+          <Link
+            to="/marketplace"
+            className={`app-nav__btn app-nav__link${
+              location.pathname.startsWith('/marketplace') ? ' is-active' : ''
+            }`}
+          >
+            Marketplace
+          </Link>
           <button
             type="button"
             className={`app-nav__btn${

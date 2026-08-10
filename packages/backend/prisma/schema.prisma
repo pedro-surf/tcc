@@ -23,6 +23,9 @@ model User {
   password  String
   bio       String?
   avatarUrl String?
+  /// Free-text home / surf base location
+  location  String?
+  phone     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -41,6 +44,11 @@ model User {
   forecasts  SpotForecast[]
   competitions SpotCompetition[]
   createdSpots Spot[] @relation("SpotCreatedBy")
+  boards    Board[]
+  wetsuits  Wetsuit[]
+  fins      Fins[]
+  leashes   Leash[]
+  offers    Offer[]
 }
 
 model Follower {
@@ -82,6 +90,19 @@ enum Country {
 enum MediaType {
   IMAGE
   VIDEO
+}
+
+enum MarketplaceProductType {
+  BOARD
+  WETSUIT
+  FINS
+  LEASH
+}
+
+enum Currency {
+  BRL
+  USD
+  EUR
 }
 
 model Location {
@@ -225,12 +246,57 @@ model ManeuverEvent {
 model Board {
   id        String   @id @default(uuid())
   name      String
+  brand     String?
   length    Float
   width     Float
   thickness Float
   volume    Float?
+  ownerId   String?
   createdAt DateTime @default(now())
-  sessions  Session[]
+
+  owner    User? @relation(fields: [ownerId], references: [id])
+  sessions Session[]
+}
+
+model Fins {
+  id        String   @id @default(uuid())
+  name      String
+  brand     String?
+  size      String?
+  ownerId   String?
+  createdAt DateTime @default(now())
+
+  owner User? @relation(fields: [ownerId], references: [id])
+}
+
+model Leash {
+  id        String   @id @default(uuid())
+  name      String
+  brand     String?
+  length    Float?
+  thickness Float?
+  ownerId   String?
+  createdAt DateTime @default(now())
+
+  owner User? @relation(fields: [ownerId], references: [id])
+}
+
+model Offer {
+  id          String                 @id @default(uuid())
+  userId      String
+  productId   String
+  productType MarketplaceProductType
+  price       Float
+  currency    Currency               @default(BRL)
+  title       String?
+  description String?
+  active      Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([productType, active])
+  @@index([userId, createdAt])
 }
 
 model SpotAccess {
@@ -381,9 +447,14 @@ model SpotData {
 model Wetsuit {
   id        String   @id @default(uuid())
   name      String
+  brand     String?
+  size      String?
   thickness Float
+  ownerId   String?
   createdAt DateTime @default(now())
-  sessions  Session[]
+
+  owner    User? @relation(fields: [ownerId], references: [id])
+  sessions Session[]
 }
 
 model UserAccess {

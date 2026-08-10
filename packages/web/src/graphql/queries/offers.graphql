@@ -1,0 +1,20 @@
+query GetOffers($take: Int, $skip: Int, $productType: MarketplaceProductTypeEnum) {
+  offers(take: $take, skip: $skip, productType: $productType) {
+    id
+    productId
+    productType
+    productLabel
+    price
+    currency
+    title
+    description
+    createdAt
+    user {
+      id
+      name
+      email
+      phone
+      location
+    }
+  }
+}

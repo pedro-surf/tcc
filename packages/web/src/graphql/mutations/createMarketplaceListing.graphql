@@ -1,0 +1,11 @@
+mutation CreateMarketplaceListing($data: CreateMarketplaceListingInput!) {
+  createMarketplaceListing(data: $data) {
+    id
+    productType
+    productLabel
+    price
+    currency
+    title
+    description
+  }
+}

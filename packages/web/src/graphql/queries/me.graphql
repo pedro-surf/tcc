@@ -3,6 +3,9 @@ query Me {
     id
     name
     email
+    location
+    phone
+    bio
     createdAt
   }
 }

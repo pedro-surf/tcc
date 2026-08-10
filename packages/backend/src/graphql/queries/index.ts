@@ -7,8 +7,8 @@ import './spotForecastsBySpot'
 import './spotTimeline'
 
 const NAME_FILTER_MODELS = new Set(['User', 'Location', 'Board'])
-/** Custom visibility query in ./spots */
-const SKIP_AUTO_LIST = new Set(['Spot'])
+/** Custom visibility / marketplace queries */
+const SKIP_AUTO_LIST = new Set(['Spot', 'Offer'])
 
 function registerAllQueries() {
   loadGqlObjects(ref => {

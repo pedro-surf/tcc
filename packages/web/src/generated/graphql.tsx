@@ -41,10 +41,13 @@ export type AuthPayload = {
 
 export type Board = {
   __typename?: 'Board';
+  brand?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   length: Scalars['Float']['output'];
   name: Scalars['String']['output'];
+  owner?: Maybe<User>;
+  ownerId?: Maybe<Scalars['String']['output']>;
   sessions: Array<Session>;
   thickness: Scalars['Float']['output'];
   volume?: Maybe<Scalars['Float']['output']>;
@@ -67,6 +70,27 @@ export const CountryEnum = {
 } as const;
 
 export type CountryEnum = typeof CountryEnum[keyof typeof CountryEnum];
+export type CreateMarketplaceListingInput = {
+  brand?: InputMaybe<Scalars['String']['input']>;
+  currency?: InputMaybe<CurrencyEnum>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  length?: InputMaybe<Scalars['Float']['input']>;
+  name: Scalars['String']['input'];
+  price: Scalars['Float']['input'];
+  productType: MarketplaceProductTypeEnum;
+  size?: InputMaybe<Scalars['String']['input']>;
+  thickness?: InputMaybe<Scalars['Float']['input']>;
+  volume?: InputMaybe<Scalars['Float']['input']>;
+  width?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export const CurrencyEnum = {
+  Brl: 'BRL',
+  Eur: 'EUR',
+  Usd: 'USD'
+} as const;
+
+export type CurrencyEnum = typeof CurrencyEnum[keyof typeof CurrencyEnum];
 export type Device = {
   __typename?: 'Device';
   createdAt: Scalars['DateTime']['output'];
@@ -74,6 +98,17 @@ export type Device = {
   creator?: Maybe<User>;
   id: Scalars['ID']['output'];
   type: Scalars['String']['output'];
+};
+
+export type Fins = {
+  __typename?: 'Fins';
+  brand?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  owner?: Maybe<User>;
+  ownerId?: Maybe<Scalars['String']['output']>;
+  size?: Maybe<Scalars['String']['output']>;
 };
 
 export type Follower = {
@@ -84,6 +119,18 @@ export type Follower = {
   following: User;
   followingId: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+};
+
+export type Leash = {
+  __typename?: 'Leash';
+  brand?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  length?: Maybe<Scalars['Float']['output']>;
+  name: Scalars['String']['output'];
+  owner?: Maybe<User>;
+  ownerId?: Maybe<Scalars['String']['output']>;
+  thickness?: Maybe<Scalars['Float']['output']>;
 };
 
 export type Like = {
@@ -126,6 +173,14 @@ export type ManeuverEvent = {
   type: Scalars['String']['output'];
 };
 
+export const MarketplaceProductTypeEnum = {
+  Board: 'BOARD',
+  Fins: 'FINS',
+  Leash: 'LEASH',
+  Wetsuit: 'WETSUIT'
+} as const;
+
+export type MarketplaceProductTypeEnum = typeof MarketplaceProductTypeEnum[keyof typeof MarketplaceProductTypeEnum];
 export const MediaTypeEnum = {
   Image: 'IMAGE',
   Video: 'VIDEO'
@@ -136,6 +191,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   bulkCreateSpotForecast: Array<SpotForecast>;
   createLocation: Location;
+  createMarketplaceListing: Offer;
   createSpot: Spot;
   createSpotCheck: SpotCheck;
   createSpotCompetition: SpotCompetition;
@@ -145,6 +201,7 @@ export type Mutation = {
   login: AuthPayload;
   register: AuthPayload;
   unfollowUser: Scalars['Boolean']['output'];
+  updateMyProfile: User;
 };
 
 
@@ -155,6 +212,11 @@ export type MutationBulkCreateSpotForecastArgs = {
 
 export type MutationCreateLocationArgs = {
   data: LocationCreateInput;
+};
+
+
+export type MutationCreateMarketplaceListingArgs = {
+  data: CreateMarketplaceListingInput;
 };
 
 
@@ -205,16 +267,42 @@ export type MutationUnfollowUserArgs = {
   userId: Scalars['String']['input'];
 };
 
+
+export type MutationUpdateMyProfileArgs = {
+  bio?: InputMaybe<Scalars['String']['input']>;
+  location?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type Offer = {
+  __typename?: 'Offer';
+  active: Scalars['Boolean']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  currency: CurrencyEnum;
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  price: Scalars['Float']['output'];
+  productId: Scalars['String']['output'];
+  productLabel: Scalars['String']['output'];
+  productType: MarketplaceProductTypeEnum;
+  title?: Maybe<Scalars['String']['output']>;
+  user: User;
+  userId: Scalars['String']['output'];
+};
+
 export type Query = {
   __typename?: 'Query';
   boards: Array<Board>;
   devices: Array<Device>;
+  finss: Array<Fins>;
   followers: Array<Follower>;
+  leashs: Array<Leash>;
   likes: Array<Like>;
   locations: Array<Location>;
   maneuverevents: Array<ManeuverEvent>;
   me?: Maybe<User>;
   myFriends: Array<User>;
+  offers: Array<Offer>;
   samples: Array<Sample>;
   sensors: Array<Sensor>;
   sessionmedias: Array<SessionMedia>;
@@ -252,7 +340,19 @@ export type QueryDevicesArgs = {
 };
 
 
+export type QueryFinssArgs = {
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QueryFollowersArgs = {
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryLeashsArgs = {
   skip?: InputMaybe<Scalars['Int']['input']>;
   take?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -272,6 +372,13 @@ export type QueryLocationsArgs = {
 
 
 export type QueryManeuvereventsArgs = {
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryOffersArgs = {
+  productType?: InputMaybe<MarketplaceProductTypeEnum>;
   skip?: InputMaybe<Scalars['Int']['input']>;
   take?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -703,12 +810,20 @@ export type SpotWeeklyDescription = {
 
 export type User = {
   __typename?: 'User';
+  bio?: Maybe<Scalars['String']['output']>;
+  boards: Array<Board>;
   createdAt: Scalars['DateTime']['output'];
   email: Scalars['String']['output'];
+  fins: Array<Fins>;
   followers: Array<Follower>;
   following: Array<Follower>;
   id: Scalars['ID']['output'];
+  leashes: Array<Leash>;
+  location?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
+  offers: Array<Offer>;
+  phone?: Maybe<Scalars['String']['output']>;
+  wetsuits: Array<Wetsuit>;
 };
 
 export const WaveTypeEnum = {
@@ -722,10 +837,14 @@ export const WaveTypeEnum = {
 export type WaveTypeEnum = typeof WaveTypeEnum[keyof typeof WaveTypeEnum];
 export type Wetsuit = {
   __typename?: 'Wetsuit';
+  brand?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  owner?: Maybe<User>;
+  ownerId?: Maybe<Scalars['String']['output']>;
   sessions: Array<Session>;
+  size?: Maybe<Scalars['String']['output']>;
   thickness: Scalars['Float']['output'];
 };
 
@@ -735,6 +854,13 @@ export type BulkCreateSpotForecastMutationVariables = Exact<{
 
 
 export type BulkCreateSpotForecastMutation = { __typename?: 'Mutation', bulkCreateSpotForecast: Array<{ __typename?: 'SpotForecast', id: string, ideal: boolean }> };
+
+export type CreateMarketplaceListingMutationVariables = Exact<{
+  data: CreateMarketplaceListingInput;
+}>;
+
+
+export type CreateMarketplaceListingMutation = { __typename?: 'Mutation', createMarketplaceListing: { __typename?: 'Offer', id: string, productType: MarketplaceProductTypeEnum, productLabel: string, price: number, currency: CurrencyEnum, title?: string | null, description?: string | null } };
 
 export type CreateSpotMutationVariables = Exact<{
   data: SpotCreateInput;
@@ -795,6 +921,15 @@ export type UnfollowUserMutationVariables = Exact<{
 
 export type UnfollowUserMutation = { __typename?: 'Mutation', unfollowUser: boolean };
 
+export type UpdateMyProfileMutationVariables = Exact<{
+  location?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+  bio?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type UpdateMyProfileMutation = { __typename?: 'Mutation', updateMyProfile: { __typename?: 'User', id: string, name: string, email: string, location?: string | null, phone?: string | null, bio?: string | null } };
+
 export type GetSpotQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
@@ -814,12 +949,21 @@ export type GetLocationsQuery = { __typename?: 'Query', locations: Array<{ __typ
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, name: string, email: string, createdAt: any } | null };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, name: string, email: string, location?: string | null, phone?: string | null, bio?: string | null, createdAt: any } | null };
 
 export type MyFriendsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type MyFriendsQuery = { __typename?: 'Query', myFriends: Array<{ __typename?: 'User', id: string, name: string, email: string }> };
+
+export type GetOffersQueryVariables = Exact<{
+  take?: InputMaybe<Scalars['Int']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  productType?: InputMaybe<MarketplaceProductTypeEnum>;
+}>;
+
+
+export type GetOffersQuery = { __typename?: 'Query', offers: Array<{ __typename?: 'Offer', id: string, productId: string, productType: MarketplaceProductTypeEnum, productLabel: string, price: number, currency: CurrencyEnum, title?: string | null, description?: string | null, createdAt: any, user: { __typename?: 'User', id: string, name: string, email: string, phone?: string | null, location?: string | null } }> };
 
 export type GetSpotChecksQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -899,6 +1043,35 @@ export const useBulkCreateSpotForecastMutation = <
     )};
 
 useBulkCreateSpotForecastMutation.getKey = () => ['BulkCreateSpotForecast'];
+
+export const CreateMarketplaceListingDocument = /*#__PURE__*/ new TypedDocumentString(`
+    mutation CreateMarketplaceListing($data: CreateMarketplaceListingInput!) {
+  createMarketplaceListing(data: $data) {
+    id
+    productType
+    productLabel
+    price
+    currency
+    title
+    description
+  }
+}
+    `);
+
+export const useCreateMarketplaceListingMutation = <
+      TError = unknown,
+      TContext = unknown
+    >(options?: UseMutationOptions<CreateMarketplaceListingMutation, TError, CreateMarketplaceListingMutationVariables, TContext>) => {
+    
+    return useMutation<CreateMarketplaceListingMutation, TError, CreateMarketplaceListingMutationVariables, TContext>(
+      {
+    mutationKey: ['CreateMarketplaceListing'],
+    mutationFn: (variables?: CreateMarketplaceListingMutationVariables) => fetcher<CreateMarketplaceListingMutation, CreateMarketplaceListingMutationVariables>(CreateMarketplaceListingDocument, variables)(),
+    ...options
+  }
+    )};
+
+useCreateMarketplaceListingMutation.getKey = () => ['CreateMarketplaceListing'];
 
 export const CreateSpotDocument = /*#__PURE__*/ new TypedDocumentString(`
     mutation CreateSpot($data: SpotCreateInput!) {
@@ -1149,6 +1322,34 @@ export const useUnfollowUserMutation = <
 
 useUnfollowUserMutation.getKey = () => ['UnfollowUser'];
 
+export const UpdateMyProfileDocument = /*#__PURE__*/ new TypedDocumentString(`
+    mutation UpdateMyProfile($location: String, $phone: String, $bio: String) {
+  updateMyProfile(location: $location, phone: $phone, bio: $bio) {
+    id
+    name
+    email
+    location
+    phone
+    bio
+  }
+}
+    `);
+
+export const useUpdateMyProfileMutation = <
+      TError = unknown,
+      TContext = unknown
+    >(options?: UseMutationOptions<UpdateMyProfileMutation, TError, UpdateMyProfileMutationVariables, TContext>) => {
+    
+    return useMutation<UpdateMyProfileMutation, TError, UpdateMyProfileMutationVariables, TContext>(
+      {
+    mutationKey: ['UpdateMyProfile'],
+    mutationFn: (variables?: UpdateMyProfileMutationVariables) => fetcher<UpdateMyProfileMutation, UpdateMyProfileMutationVariables>(UpdateMyProfileDocument, variables)(),
+    ...options
+  }
+    )};
+
+useUpdateMyProfileMutation.getKey = () => ['UpdateMyProfile'];
+
 export const GetSpotDocument = /*#__PURE__*/ new TypedDocumentString(`
     query GetSpot($id: ID!) {
   spot(id: $id) {
@@ -1251,6 +1452,9 @@ export const MeDocument = /*#__PURE__*/ new TypedDocumentString(`
     id
     name
     email
+    location
+    phone
+    bio
     createdAt
   }
 }
@@ -1301,6 +1505,47 @@ export const useMyFriendsQuery = <
     )};
 
 useMyFriendsQuery.getKey = (variables?: MyFriendsQueryVariables) => variables === undefined ? ['MyFriends'] : ['MyFriends', variables];
+
+export const GetOffersDocument = /*#__PURE__*/ new TypedDocumentString(`
+    query GetOffers($take: Int, $skip: Int, $productType: MarketplaceProductTypeEnum) {
+  offers(take: $take, skip: $skip, productType: $productType) {
+    id
+    productId
+    productType
+    productLabel
+    price
+    currency
+    title
+    description
+    createdAt
+    user {
+      id
+      name
+      email
+      phone
+      location
+    }
+  }
+}
+    `);
+
+export const useGetOffersQuery = <
+      TData = GetOffersQuery,
+      TError = unknown
+    >(
+      variables?: GetOffersQueryVariables,
+      options?: Omit<UseQueryOptions<GetOffersQuery, TError, TData>, 'queryKey'> & { queryKey?: UseQueryOptions<GetOffersQuery, TError, TData>['queryKey'] }
+    ) => {
+    
+    return useQuery<GetOffersQuery, TError, TData>(
+      {
+    queryKey: variables === undefined ? ['GetOffers'] : ['GetOffers', variables],
+    queryFn: fetcher<GetOffersQuery, GetOffersQueryVariables>(GetOffersDocument, variables),
+    ...options
+  }
+    )};
+
+useGetOffersQuery.getKey = (variables?: GetOffersQueryVariables) => variables === undefined ? ['GetOffers'] : ['GetOffers', variables];
 
 export const GetSpotChecksDocument = /*#__PURE__*/ new TypedDocumentString(`
     query GetSpotChecks($take: Int, $skip: Int) {

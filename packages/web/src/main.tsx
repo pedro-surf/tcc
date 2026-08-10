@@ -9,6 +9,7 @@ import { AuthProvider } from './auth/AuthContext'
 import { SimulationPage } from './features/simulation/SimulationPage'
 import { SpotDetailsPage } from './features/spots/SpotDetailsPage'
 import { FriendsPage } from './features/friends/FriendsPage'
+import { MarketplacePage } from './features/marketplace/MarketplacePage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +44,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <AppShell>
                   <FriendsPage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/marketplace"
+              element={
+                <AppShell>
+                  <MarketplacePage />
                 </AppShell>
               }
             />

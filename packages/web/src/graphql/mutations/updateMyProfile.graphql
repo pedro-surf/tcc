@@ -1,0 +1,10 @@
+mutation UpdateMyProfile($location: String, $phone: String, $bio: String) {
+  updateMyProfile(location: $location, phone: $phone, bio: $bio) {
+    id
+    name
+    email
+    location
+    phone
+    bio
+  }
+}
