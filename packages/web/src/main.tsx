@@ -11,6 +11,9 @@ import { SpotDetailsPage } from './features/spots/SpotDetailsPage'
 import { FriendsPage } from './features/friends/FriendsPage'
 import { MarketplacePage } from './features/marketplace/MarketplacePage'
 import { HighscoresPage } from './features/stats/HighscoresPage'
+import { EventsPage } from './features/events/EventsPage'
+import { EventPage } from './features/events/EventPage'
+import { HeatJudgingPage } from './features/events/HeatJudgingPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +64,30 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <AppShell>
                   <HighscoresPage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/events/:eventId/heats/:heatId"
+              element={
+                <AppShell>
+                  <HeatJudgingPage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/events/:eventId"
+              element={
+                <AppShell>
+                  <EventPage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/events"
+              element={
+                <AppShell>
+                  <EventsPage />
                 </AppShell>
               }
             />

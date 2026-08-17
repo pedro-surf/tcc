@@ -52,6 +52,17 @@ export const SpotRef = builder.prismaObject('Spot', {
     checks: t.relation('checks'),
     competitions: t.relation('competitions'),
     forecasts: t.relation('forecasts'),
+    forecastFetches: t.relation('forecastFetches', {
+      args: {
+        take: t.arg.int(),
+        skip: t.arg.int(),
+      },
+      query: (args) => ({
+        orderBy: [{ year: 'desc' }, { month: 'desc' }],
+        take: args.take ?? 36,
+        skip: args.skip ?? 0,
+      }),
+    }),
     data: t.relation('data'),
     media: t.relation('media'),
     weeklyDescriptions: t.relation('weeklyDescriptions', {

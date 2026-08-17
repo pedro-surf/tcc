@@ -1,0 +1,26 @@
+query SpotForecastMonth($spotId: String!, $year: Int!, $month: Int!) {
+  spotForecastMonth(spotId: $spotId, year: $year, month: $month) {
+    fetchId
+    year
+    month
+    kind
+    source
+    fromCache
+    from
+    to
+    forecasts {
+      id
+      ideal
+      score
+      swell
+      swellDir
+      wind
+      windDir
+      period
+      energy
+      temp
+      timestamp
+      source
+    }
+  }
+}

@@ -4,12 +4,23 @@ import './me'
 import './spot'
 import './spots'
 import './spotForecastsBySpot'
+import './spotForecastHistory'
 import './spotTimeline'
 import './leaderboards'
+import './events'
 
 const NAME_FILTER_MODELS = new Set(['User', 'Location', 'Board'])
 /** Custom visibility / marketplace queries */
-const SKIP_AUTO_LIST = new Set(['Spot', 'Offer', 'Brand'])
+const SKIP_AUTO_LIST = new Set([
+  'Spot',
+  'Offer',
+  'Brand',
+  'CompetitionHeat',
+  'HeatSurfer',
+  'HeatWave',
+  'HeatWaveScore',
+  'SpotForecastFetch',
+])
 
 function registerAllQueries() {
   loadGqlObjects(ref => {

@@ -42,7 +42,9 @@ model User {
   spotChecks   SpotCheck[]
   accesses  UserAccess[]
   forecasts  SpotForecast[]
+  forecastFetches SpotForecastFetch[]
   competitions SpotCompetition[]
+  heatEntries HeatSurfer[]
   createdSpots Spot[] @relation("SpotCreatedBy")
   gearOwnerships UserGear[] @relation("UserGearOwner")
   gearTransfersFrom UserGear[] @relation("UserGearFrom")
@@ -104,6 +106,17 @@ enum Currency {
   EUR
 }
 
+enum ForecastSource {
+  COPERNICUS_MARINE
+  WORLD_WEATHER_ONLINE
+  OPEN_METEO_MARINE
+}
+
+enum ForecastFetchKind {
+  FORECAST
+  HISTORY
+}
+
 model Location {
   id          String   @id @default(uuid())
   name        String
@@ -150,11 +163,40 @@ model Spot {
   location       Location? @relation(fields: [locationId], references: [id])
   createdBy      User? @relation("SpotCreatedBy", fields: [createdById], references: [id])
   forecasts      SpotForecast[]
+  forecastFetches SpotForecastFetch[]
   checks         SpotCheck[]
   competitions   SpotCompetition[]
   data           SpotData[]
   media          SpotMedia[]
   weeklyDescriptions SpotWeeklyDescription[]
+}
+
+/// Raw monthly payload from an external marine API (Copernicus, WWO, …).
+/// One row per spot + source + month; used to fill the spot's past calendar
+/// without re-hitting the provider.
+model SpotForecastFetch {
+  id            String            @id @default(uuid())
+  spotId        String
+  source        ForecastSource
+  kind          ForecastFetchKind
+  year          Int
+  month         Int
+  from          DateTime
+  to            DateTime
+  lat           Float
+  lng           Float
+  datasetId     String?
+  rawPayload    Json
+  requestedById String?
+  fetchedAt     DateTime          @default(now())
+  createdAt     DateTime          @default(now())
+
+  spot        Spot  @relation(fields: [spotId], references: [id])
+  requestedBy User? @relation(fields: [requestedById], references: [id])
+  forecasts   SpotForecast[]
+
+  @@unique([spotId, source, year, month, kind])
+  @@index([spotId, year, month])
 }
 
 /// Historical AI weekly outlooks for a spot (Spot.weeklyGenerated* is the latest cache).
@@ -344,6 +386,12 @@ model SpotAccess {
   user      User @relation(fields: [userId], references: [id])
 }
 
+enum HeatStatus {
+  PENDING
+  RUNNING
+  FINISHED
+}
+
 model SpotCompetition {
   id          String   @id @default(uuid())
   spotId      String
@@ -355,6 +403,64 @@ model SpotCompetition {
 
   spot      Spot @relation(fields: [spotId], references: [id])
   createdBy User? @relation(fields: [createdById], references: [id])
+  heats     CompetitionHeat[]
+}
+
+model CompetitionHeat {
+  id            String     @id @default(uuid())
+  competitionId String
+  name          String
+  judgeCount    Int
+  durationMin   Int
+  status        HeatStatus @default(PENDING)
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime   @default(now())
+
+  competition SpotCompetition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  surfers     HeatSurfer[]
+  waves       HeatWave[]
+
+  @@index([competitionId, createdAt])
+}
+
+model HeatSurfer {
+  id        String   @id @default(uuid())
+  heatId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  heat  CompetitionHeat @relation(fields: [heatId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id])
+  waves HeatWave[]
+
+  @@unique([heatId, userId])
+}
+
+model HeatWave {
+  id         String   @id @default(uuid())
+  heatId     String
+  surferId   String
+  elapsedSec Int
+  createdAt  DateTime @default(now())
+
+  heat   CompetitionHeat @relation(fields: [heatId], references: [id], onDelete: Cascade)
+  surfer HeatSurfer      @relation(fields: [surferId], references: [id], onDelete: Cascade)
+  scores HeatWaveScore[]
+
+  @@index([heatId, elapsedSec])
+}
+
+model HeatWaveScore {
+  id         String   @id @default(uuid())
+  waveId     String
+  judgeIndex Int
+  score      Float
+  createdAt  DateTime @default(now())
+
+  wave HeatWave @relation(fields: [waveId], references: [id], onDelete: Cascade)
+
+  @@unique([waveId, judgeIndex])
 }
 
 model SpotForecast {
@@ -375,13 +481,17 @@ model SpotForecast {
   power       String?
   timestamp   DateTime @default(now())
   createdAt   DateTime @default(now())
+  source      ForecastSource?
+  fetchId     String?
 
   spot        Spot? @relation(fields: [spotId], references: [id])
   user        User @relation(fields: [userId], references: [id])
   location    Location? @relation(fields: [locationId], references: [id])
+  fetch       SpotForecastFetch? @relation(fields: [fetchId], references: [id])
   weeklyDescriptions SpotWeeklyDescription[]
 
   @@unique([spotId, userId, timestamp])
+  @@index([spotId, timestamp])
 }
 
 model SpotCheck {

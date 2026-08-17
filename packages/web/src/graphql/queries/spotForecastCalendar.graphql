@@ -1,0 +1,10 @@
+query SpotForecastCalendar($spotId: String!) {
+  spotForecastCalendar(spotId: $spotId) {
+    year
+    month
+    source
+    kind
+    fetchedAt
+    rowCount
+  }
+}

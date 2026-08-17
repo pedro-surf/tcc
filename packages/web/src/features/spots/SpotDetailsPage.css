@@ -293,6 +293,77 @@
   background: #0f172a;
 }
 
+.spot-timeline__action {
+  margin-top: 10px;
+  display: inline-flex;
+}
+
+.spot-timeline__card h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.spot-timeline__card h3 a:hover {
+  color: #0369a1;
+}
+
+.spot-history__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 4px 0 12px;
+}
+
+.spot-history__controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.spot-history__controls select {
+  min-width: 140px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  color: #0f172a;
+}
+
+.spot-history__calendar {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.spot-history__chip {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  border-radius: 8px;
+  padding: 8px 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.spot-history__chip.is-filled {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+.spot-history__chip.is-selected {
+  border-color: #0c4a6e;
+  box-shadow: 0 0 0 1px #0c4a6e;
+}
+
+.spot-history__chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 @media (max-width: 720px) {
   .spot-details__about {
     grid-template-columns: 1fr;
@@ -304,5 +375,9 @@
 
   .spot-details__inline-grid {
     grid-template-columns: 1fr;
+  }
+
+  .spot-history__calendar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

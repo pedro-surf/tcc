@@ -63,6 +63,7 @@ body {
 
 .app-nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 

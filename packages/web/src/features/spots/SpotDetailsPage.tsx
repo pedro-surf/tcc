@@ -14,6 +14,7 @@ import {
 } from '../../generated/graphql'
 import { CreateSpotCheck } from '../spotChecks/CreateSpotCheck'
 import { CreateSpotCompetition } from './CreateSpotCompetition'
+import { SpotForecastHistory } from './SpotForecastHistory'
 import './SpotDetailsPage.css'
 
 type TimelineItem =
@@ -369,6 +370,11 @@ export function SpotDetailsPage() {
         )}
       </section>
 
+      <SpotForecastHistory
+        spotId={spot.id}
+        isAuthenticated={isAuthenticated}
+      />
+
       {panel === 'check' ? (
         <section className="spot-details__section">
           <CreateSpotCheck
@@ -411,12 +417,24 @@ export function SpotDetailsPage() {
                     </span>
                   </div>
                   <h3>
-                    {item.title}
+                    {item.kind === 'event' ? (
+                      <Link to={`/events/${item.id}`}>{item.title}</Link>
+                    ) : (
+                      item.title
+                    )}
                     {item.kind === 'check' && item.score != null
                       ? ` · ${item.score.toFixed(1)}/10`
                       : ''}
                   </h3>
                   <p>{item.body}</p>
+                  {item.kind === 'event' ? (
+                    <Link
+                      to={`/events/${item.id}`}
+                      className="btn btn-secondary spot-timeline__action"
+                    >
+                      Open judging
+                    </Link>
+                  ) : null}
                   {item.kind === 'check' && item.mediaUrl ? (
                     item.mediaType === 'VIDEO' ? (
                       <video

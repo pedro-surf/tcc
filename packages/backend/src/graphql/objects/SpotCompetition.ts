@@ -11,5 +11,10 @@ export const SpotCompetitionRef = builder.prismaObject('SpotCompetition', {
     createdAt: t.expose('createdAt', { type: 'DateTime' }),
     spot: t.relation('spot'),
     createdBy: t.relation('createdBy', { nullable: true }),
+    heats: t.relation('heats', {
+      query: () => ({
+        orderBy: { createdAt: 'asc' },
+      }),
+    }),
   }),
 })

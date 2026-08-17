@@ -14,5 +14,6 @@ export const UserRef = builder.prismaObject('User', {
     gearOwnerships: t.relation('gearOwnerships'),
     offers: t.relation('offers'),
     purchases: t.relation('purchases'),
+    heatEntries: t.relation('heatEntries'),
   }),
 })

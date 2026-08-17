@@ -137,6 +137,14 @@ function App({ children }: Props) {
           >
             Highscores
           </Link>
+          <Link
+            to="/events"
+            className={`app-nav__btn app-nav__link${
+              location.pathname.startsWith('/events') ? ' is-active' : ''
+            }`}
+          >
+            Events
+          </Link>
           <button
             type="button"
             className={`app-nav__btn${
