@@ -1,0 +1,43 @@
+query SpotWeekRanking($take: Int) {
+  spotWeekRanking(take: $take) {
+    spotId
+    weekScore
+    bestScore
+    bestAt
+    matchedOrigin
+    idealCount
+    forecastCount
+    bestSwell
+    bestSwellDir
+    bestWind
+    bestWindDir
+    spot {
+      id
+      name
+      country
+      waveType
+      mapsUrl
+      idealWindDir
+      idealSwellDir
+    }
+    bestForecast {
+      id
+      timestamp
+      swell
+      swellDir
+      wind
+      windDir
+      period
+      ideal
+    }
+    matchedIdealForecast {
+      id
+      swell
+      swellDir
+      wind
+      windDir
+      period
+      ideal
+    }
+  }
+}

@@ -24,6 +24,12 @@ export const SpotRef = builder.prismaObject('Spot', {
     strongWindTolerance: t.exposeInt('strongWindTolerance', {
       nullable: true,
     }),
+    idealConditionVec: t.field({
+      type: ['Float'],
+      nullable: true,
+      resolve: (spot) =>
+        spot.idealConditionVec?.length ? spot.idealConditionVec : null,
+    }),
     weeklyGeneratedDescription: t.exposeString('weeklyGeneratedDescription', {
       nullable: true,
     }),

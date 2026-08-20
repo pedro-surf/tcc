@@ -138,6 +138,14 @@ function App({ children }: Props) {
             Highscores
           </Link>
           <Link
+            to="/ranking"
+            className={`app-nav__btn app-nav__link${
+              location.pathname.startsWith('/ranking') ? ' is-active' : ''
+            }`}
+          >
+            This week
+          </Link>
+          <Link
             to="/events"
             className={`app-nav__btn app-nav__link${
               location.pathname.startsWith('/events') ? ' is-active' : ''

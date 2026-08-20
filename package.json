@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm -F @thesis/* --parallel dev",
+    "forecast:weekly": "pnpm -F @thesis/ai-forecast job",
     "db:generate": "pnpm -F @thesis/backend generate",
     "gql:generate": "pnpm -F @thesis/web codegen",
     "generate": "pnpm db:generate && pnpm gql:generate"

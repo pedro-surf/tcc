@@ -8,6 +8,7 @@ import { createContext } from './graphql/context'
 import { loggingPlugin } from './graphql/logging'
 import { uploadRouter, UPLOAD_DIR } from './rest/upload'
 import { spotWeeklyDescriptionRouter } from './rest/spotWeeklyDescription'
+import { internalJobsRouter } from './rest/internalJobs'
 
 const app = express()
 
@@ -34,7 +35,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   )
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization',
+    'Content-Type, Authorization, x-cron-secret',
   )
   res.setHeader('Access-Control-Max-Age', '86400')
 
@@ -49,6 +50,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use('/uploads', express.static(UPLOAD_DIR))
 app.use('/upload', uploadRouter)
 app.use('/spots', spotWeeklyDescriptionRouter)
+app.use('/internal', express.json(), internalJobsRouter)
 
 const yoga = createYoga<{
   req: Request
@@ -68,6 +70,9 @@ app.listen(port, () => {
   console.log(`Static:  http://localhost:${port}/uploads`)
   console.log(
     `Weekly AI: POST http://localhost:${port}/spots/:spotId/weekly-description`,
+  )
+  console.log(
+    `Weekly job: POST http://localhost:${port}/internal/jobs/weekly-forecast`,
   )
   console.log(`Upload dir: ${path.resolve(UPLOAD_DIR)}`)
 })

@@ -1,0 +1,18 @@
+{
+  "name": "@thesis/ai-forecast",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Weekly cron/lambda that asks the backend to ingest forecasts and generate AI outlooks",
+  "main": "dist/handler.js",
+  "scripts": {
+    "dev": "node -e \"console.log('ai-forecast is a weekly cron; run pnpm forecast:weekly')\"",
+    "job": "ts-node src/local.ts",
+    "build": "tsc",
+    "start": "node dist/local.js"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

@@ -26,6 +26,9 @@ Create a `.env` file:
 
 ```env
 DATABASE_URL="postgresql://admin:password@localhost:5432/thesis_db?schema=public"
+OPENAI_API_KEY=
+CRON_SECRET=dev-secret
+FORECAST_INGEST_USER_ID=
 ```
 
 Then create and run the Docker container:
@@ -43,6 +46,16 @@ Lastly, execute the migrations and start the server.
 ```bash
 pnpm create-db && pnpm dev
 ```
+
+## Weekly forecast job
+
+`@thesis/ai-forecast` is a Lambda/cron client. It does not call Open-Meteo or OpenAI. It posts to:
+
+`POST /internal/jobs/weekly-forecast` with header `x-cron-secret: $CRON_SECRET`
+
+That reuses ingest + weekly AI generation for every public spot. See `packages/ai-forecast/readme.md`.
+
+Next-week ranking (`spotWeekRanking`) compares forecast swell/wind **angles** in SQL with wraparound (`angle_diff`), plus extra `SpotForecast.ideal = true` windows.
 
 ## To-Dos:
 - Automation GQL: mutations; make queries name camel case

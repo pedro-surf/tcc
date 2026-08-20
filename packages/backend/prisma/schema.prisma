@@ -150,6 +150,8 @@ model Spot {
   strongSwellTolerance Int?
   /// How well the spot tolerates strong wind (1–5)
   strongWindTolerance  Int?
+  /// Encoded ideal condition vector from idealWindDir / idealSwellDir
+  idealConditionVec Float[]
   /// AI weekly outlook combining forecast + spot characteristics
   weeklyGeneratedDescription String?
   /// When weeklyGeneratedDescription was last produced
@@ -483,6 +485,8 @@ model SpotForecast {
   createdAt   DateTime @default(now())
   source      ForecastSource?
   fetchId     String?
+  /// Encoded [swell, wind, period, sin/cos swellDir, sin/cos windDir]
+  conditionVec Float[]
 
   spot        Spot? @relation(fields: [spotId], references: [id])
   user        User @relation(fields: [userId], references: [id])
@@ -492,6 +496,9 @@ model SpotForecast {
 
   @@unique([spotId, userId, timestamp])
   @@index([spotId, timestamp])
+  @@index([ideal, spotId])
+  @@index([timestamp, ideal])
+  @@index([spotId, ideal, timestamp])
 }
 
 model SpotCheck {

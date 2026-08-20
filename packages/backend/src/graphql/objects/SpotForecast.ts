@@ -21,6 +21,11 @@ export const SpotForecastRef = builder.prismaObject('SpotForecast', {
     createdAt: t.expose('createdAt', { type: 'DateTime' }),
     source: t.expose('source', { type: ForecastSourceEnum, nullable: true }),
     fetchId: t.exposeString('fetchId', { nullable: true }),
+    conditionVec: t.field({
+      type: ['Float'],
+      nullable: true,
+      resolve: (row) => (row.conditionVec?.length ? row.conditionVec : null),
+    }),
     spot: t.relation('spot', { nullable: true }),
     user: t.relation('user'),
     location: t.relation('location', { nullable: true }),

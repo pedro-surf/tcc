@@ -143,22 +143,40 @@ export function canGenerateWeeklyDescription(
   }
 }
 
-export async function generateAndStoreWeeklySpotDescription(spotId: string) {
+export async function generateAndStoreWeeklySpotDescription(
+  spotId: string,
+  options?: { skipCooldown?: boolean },
+) {
   const spot = await prisma.spot.findUnique({ where: { id: spotId } })
   if (!spot) {
     throw new Error('Spot not found')
   }
 
-  const cooldown = canGenerateWeeklyDescription(spot.weeklyGeneratedAt)
-  if (!cooldown.allowed && cooldown.nextAvailableAt) {
-    throw new WeeklyDescriptionCooldownError(cooldown.nextAvailableAt)
+  if (!options?.skipCooldown) {
+    const cooldown = canGenerateWeeklyDescription(spot.weeklyGeneratedAt)
+    if (!cooldown.allowed && cooldown.nextAvailableAt) {
+      throw new WeeklyDescriptionCooldownError(cooldown.nextAvailableAt)
+    }
   }
 
-  const forecasts = await prisma.spotForecast.findMany({
-    where: { spotId },
-    orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
-    take: 24,
+  const now = new Date()
+  const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  let forecasts = await prisma.spotForecast.findMany({
+    where: {
+      spotId,
+      ideal: false,
+      timestamp: { gte: now, lt: weekEnd },
+    },
+    orderBy: [{ timestamp: 'asc' }],
+    take: 56,
   })
+  if (forecasts.length === 0) {
+    forecasts = await prisma.spotForecast.findMany({
+      where: { spotId },
+      orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      take: 24,
+    })
+  }
 
   const description = await callOpenAI(buildPrompt(spot, forecasts))
   const weeklyGeneratedAt = new Date()

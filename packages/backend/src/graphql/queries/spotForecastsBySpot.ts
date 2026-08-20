@@ -19,8 +19,8 @@ builder.queryField('spotForecastsBySpot', (t) =>
       month: t.arg.int(),
     },
     resolve: async (query, _root, args) => {
-      // TODO(ai-vectors): fetch candidate forecasts from vector index by spot embedding
-      // and re-rank / filter before returning. Keep this field name stable for the web client.
+      // TODO(ai-vectors): week ranking uses condition vectors vs ideal rows.
+      // Keep this field name stable for the web client.
       let monthFilter: { from: Date; to: Date } | null = null
       if (args.year != null && args.month != null) {
         try {

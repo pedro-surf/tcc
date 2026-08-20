@@ -14,6 +14,7 @@ import { HighscoresPage } from './features/stats/HighscoresPage'
 import { EventsPage } from './features/events/EventsPage'
 import { EventPage } from './features/events/EventPage'
 import { HeatJudgingPage } from './features/events/HeatJudgingPage'
+import { SpotRankingPage } from './features/ranking/SpotRankingPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,14 @@ createRoot(document.getElementById('root')!).render(
               element={
                 <AppShell>
                   <HighscoresPage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/ranking"
+              element={
+                <AppShell>
+                  <SpotRankingPage />
                 </AppShell>
               }
             />

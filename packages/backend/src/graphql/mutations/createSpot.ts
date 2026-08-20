@@ -1,5 +1,6 @@
-import { GraphQLError } from 'graphql'
 import { MediaType } from '@prisma/client'
+import { GraphQLError } from 'graphql'
+import { encodeSpotIdealVector } from '../../forecast/conditionVector'
 import { builder, prisma } from '../builder'
 import { requireUser, type Context } from '../context'
 import MediaTypeEnum from '../enums/MediaType'
@@ -88,6 +89,10 @@ builder.mutationField('createSpot', (t) =>
           lng: args.data.lng,
           idealWindDir: args.data.idealWindDir ?? null,
           idealSwellDir: args.data.idealSwellDir ?? null,
+          idealConditionVec: encodeSpotIdealVector({
+            idealWindDir: args.data.idealWindDir,
+            idealSwellDir: args.data.idealSwellDir,
+          }) ?? undefined,
           strongSwellTolerance: clampTolerance(
             args.data.strongSwellTolerance,
             'strongSwellTolerance',
