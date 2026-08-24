@@ -28,6 +28,7 @@ Create a `.env` file:
 DATABASE_URL="postgresql://admin:password@localhost:5432/thesis_db?schema=public"
 OPENAI_API_KEY=
 CRON_SECRET=dev-secret
+FORECAST_LAMBDA_URL=http://localhost:4000
 FORECAST_INGEST_USER_ID=
 ```
 
@@ -49,13 +50,16 @@ pnpm create-db && pnpm dev
 
 ## Weekly forecast job
 
-`@thesis/ai-forecast` is a Lambda/cron client. It does not call Open-Meteo or OpenAI. It posts to:
+Heavy work lives in `@thesis/ai-forecast` (serverless-offline on port 4000). GraphQL mutations `ensureSpotForecastMonth` and `generateSpotWeeklyDescription` only check auth/visibility, then `POST` to that Lambda. Start both:
 
-`POST /internal/jobs/weekly-forecast` with header `x-cron-secret: $CRON_SECRET`
+```
+pnpm -F @thesis/ai-forecast dev
+pnpm -F @thesis/backend dev
+```
 
-That reuses ingest + weekly AI generation for every public spot. See `packages/ai-forecast/readme.md`.
+`POST /internal/jobs/weekly-forecast` with `x-cron-secret` still works; it forwards to the Lambda instead of running ingest in the API process.
 
-Next-week ranking (`spotWeekRanking`) compares forecast swell/wind **angles** in SQL with wraparound (`angle_diff`), plus extra `SpotForecast.ideal = true` windows.
+Next-week ranking (`spotWeekRanking`) stays in Postgres (`angle_diff`). See `packages/ai-forecast/readme.md`.
 
 ## To-Dos:
 - Automation GQL: mutations; make queries name camel case

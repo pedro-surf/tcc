@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { Spot, SpotForecast } from '@prisma/client'
-import { prisma } from '../graphql/builder'
+import { prisma } from '../db'
 
 export const WEEKLY_DESCRIPTION_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -14,12 +14,11 @@ export class WeeklyDescriptionCooldownError extends Error {
   }
 }
 
-/** UTC Monday 00:00 for the week containing `date`. */
 export function startOfUtcWeek(date: Date): Date {
   const d = new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
   )
-  const day = d.getUTCDay() // 0 = Sun
+  const day = d.getUTCDay()
   const diff = day === 0 ? -6 : 1 - day
   d.setUTCDate(d.getUTCDate() + diff)
   return d

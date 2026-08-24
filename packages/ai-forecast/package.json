@@ -2,16 +2,26 @@
   "name": "@thesis/ai-forecast",
   "version": "1.0.0",
   "private": true,
-  "description": "Weekly cron/lambda that asks the backend to ingest forecasts and generate AI outlooks",
-  "main": "dist/handler.js",
+  "description": "Lambda that ingests marine forecasts, writes Prisma rows, and generates weekly AI outlooks",
+  "main": "src/handler.ts",
   "scripts": {
-    "dev": "node -e \"console.log('ai-forecast is a weekly cron; run pnpm forecast:weekly')\"",
+    "dev": "serverless offline --httpPort 4000 --lambdaPort 4002 --noPrependStageInUrl",
     "job": "ts-node src/local.ts",
+    "invoke": "serverless invoke local -f jobs --path events/weekly-forecast.json",
     "build": "tsc",
     "start": "node dist/local.js"
   },
+  "dependencies": {
+    "@prisma/client": "^5.18.0",
+    "axios": "^1.16.0",
+    "dotenv": "^17.4.0"
+  },
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "esbuild": "^0.25.0",
+    "serverless": "^3.40.0",
+    "serverless-esbuild": "^1.55.0",
+    "serverless-offline": "^13.9.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

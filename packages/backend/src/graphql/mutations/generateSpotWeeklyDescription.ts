@@ -4,9 +4,9 @@ import { requireUser, type Context } from '../context'
 import { SpotRef } from '../objects/Spot'
 import { canViewSpot } from '../utils/spotVisibility'
 import {
-  WeeklyDescriptionCooldownError,
-  generateAndStoreWeeklySpotDescription,
-} from '../../ai/weeklySpotDescription'
+  ForecastLambdaError,
+  invokeWeeklyDescription,
+} from '../../jobs/invokeForecastLambda'
 
 builder.mutationField('generateSpotWeeklyDescription', (t) =>
   t.prismaField({
@@ -26,17 +26,18 @@ builder.mutationField('generateSpotWeeklyDescription', (t) =>
       }
 
       try {
-        const updated = await generateAndStoreWeeklySpotDescription(access.id)
+        const updated = await invokeWeeklyDescription({ spotId: access.id })
         return prisma.spot.findUniqueOrThrow({
           ...query,
           where: { id: updated.id },
         })
       } catch (error) {
-        if (error instanceof WeeklyDescriptionCooldownError) {
+        if (error instanceof ForecastLambdaError && error.status === 429) {
+          const payload = error.payload as { nextAvailableAt?: string } | undefined
           throw new GraphQLError(error.message, {
             extensions: {
               code: 'WEEKLY_DESCRIPTION_COOLDOWN',
-              nextAvailableAt: error.nextAvailableAt.toISOString(),
+              nextAvailableAt: payload?.nextAvailableAt ?? null,
             },
           })
         }

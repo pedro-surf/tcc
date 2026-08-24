@@ -1,4 +1,4 @@
-import { WEEKLY_DESCRIPTION_COOLDOWN_MS } from '../../ai/weeklySpotDescription'
+import { WEEKLY_DESCRIPTION_COOLDOWN_MS } from '../../ai/weeklyCooldown'
 import { builder } from '../builder'
 import BottomTypeEnum from '../enums/BottomType'
 import CountryEnum from '../enums/Country'

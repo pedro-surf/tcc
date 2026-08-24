@@ -1,5 +1,8 @@
 import { Router, type Request } from 'express'
-import { runWeeklyForecastJob } from '../jobs/runWeeklyForecastJob'
+import {
+  ForecastLambdaError,
+  invokeWeeklyForecastJob,
+} from '../jobs/invokeForecastLambda'
 
 export const internalJobsRouter = Router()
 
@@ -18,11 +21,12 @@ internalJobsRouter.post('/jobs/weekly-forecast', async (req, res) => {
   }
 
   try {
-    const result = await runWeeklyForecastJob()
+    const result = await invokeWeeklyForecastJob()
     res.status(200).json(result)
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Weekly forecast job failed'
-    res.status(500).json({ error: message })
+    const status = error instanceof ForecastLambdaError ? error.status : 500
+    res.status(status).json({ error: message })
   }
 })

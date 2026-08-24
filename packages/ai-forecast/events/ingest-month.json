@@ -1,0 +1,10 @@
+{
+  "job": "ingest-month",
+  "secret": "dev-secret",
+  "spotId": "replace-me",
+  "year": 2026,
+  "month": 8,
+  "requestedById": "replace-me",
+  "force": false,
+  "allowUpcoming": false
+}

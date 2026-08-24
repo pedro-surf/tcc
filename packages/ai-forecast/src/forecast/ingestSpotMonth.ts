@@ -1,5 +1,5 @@
 import type { ForecastFetchKind, ForecastSource, Prisma } from '@prisma/client'
-import { prisma } from '../graphql/builder'
+import { prisma } from '../db'
 import { resolveMonthRange } from './monthRange'
 import { getForecastProvider } from './providers'
 import { encodeConditionVector } from './conditionVector'

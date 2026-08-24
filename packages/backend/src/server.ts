@@ -72,7 +72,10 @@ app.listen(port, () => {
     `Weekly AI: POST http://localhost:${port}/spots/:spotId/weekly-description`,
   )
   console.log(
-    `Weekly job: POST http://localhost:${port}/internal/jobs/weekly-forecast`,
+    `Weekly job trigger: POST http://localhost:${port}/internal/jobs/weekly-forecast`,
+  )
+  console.log(
+    `Forecast lambda: ${process.env.FORECAST_LAMBDA_URL || 'http://localhost:4000'}`,
   )
   console.log(`Upload dir: ${path.resolve(UPLOAD_DIR)}`)
 })

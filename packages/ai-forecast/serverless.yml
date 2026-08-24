@@ -1,0 +1,53 @@
+service: ai-forecast
+frameworkVersion: '3'
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  timeout: 300
+  memorySize: 1024
+  environment:
+    DATABASE_URL: ${env:DATABASE_URL, ''}
+    CRON_SECRET: ${env:CRON_SECRET, ''}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY, ''}
+    OPENAI_MODEL: ${env:OPENAI_MODEL, 'gpt-4o-mini'}
+    FORECAST_PROVIDER: ${env:FORECAST_PROVIDER, 'open-meteo'}
+    FORECAST_INGEST_USER_ID: ${env:FORECAST_INGEST_USER_ID, ''}
+    WWO_API_KEY: ${env:WWO_API_KEY, ''}
+
+functions:
+  jobs:
+    handler: src/handler.handler
+    timeout: 300
+    url: true
+    events:
+      - httpApi:
+          path: /jobs/{job}
+          method: POST
+      - schedule:
+          rate: cron(0 12 ? * MON *)
+          enabled: false
+
+plugins:
+  - serverless-esbuild
+  - serverless-offline
+
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    packager: pnpm
+    platform: node
+    target: node20
+    exclude:
+      - '@aws-sdk/*'
+      - '@prisma/client'
+  serverless-offline:
+    httpPort: 4000
+    lambdaPort: 4002
+    noPrependStageInUrl: true
+    lambdaTimeout: 300

@@ -1,4 +1,4 @@
-import { prisma } from '../graphql/builder'
+import { prisma } from '../db'
 import { generateAndStoreWeeklySpotDescription } from '../ai/weeklySpotDescription'
 import { ingestSpotMonth } from '../forecast/ingestSpotMonth'
 import { monthsForNextWeek } from '../forecast/monthRange'

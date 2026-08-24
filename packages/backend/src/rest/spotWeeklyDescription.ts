@@ -1,13 +1,12 @@
 import { Router } from 'express'
 import { verifyAuthToken } from '../auth/jwt'
 import { prisma } from '../graphql/builder'
-import {
-  WeeklyDescriptionCooldownError,
-  canGenerateWeeklyDescription,
-  generateAndStoreWeeklySpotDescription,
-} from '../ai/weeklySpotDescription'
 import { canViewSpot } from '../graphql/utils/spotVisibility'
 import type { Context } from '../graphql/context'
+import {
+  ForecastLambdaError,
+  invokeWeeklyDescription,
+} from '../jobs/invokeForecastLambda'
 
 export const spotWeeklyDescriptionRouter = Router()
 
@@ -41,7 +40,6 @@ spotWeeklyDescriptionRouter.post(
           id: true,
           secret: true,
           createdById: true,
-          weeklyGeneratedAt: true,
         },
       })
       if (!access) {
@@ -55,32 +53,29 @@ spotWeeklyDescriptionRouter.post(
         return
       }
 
-      const cooldown = canGenerateWeeklyDescription(access.weeklyGeneratedAt)
-      if (!cooldown.allowed) {
-        res.status(429).json({
-          error: 'Weekly AI description can only be generated once per week',
-          nextAvailableAt: cooldown.nextAvailableAt?.toISOString() ?? null,
-        })
-        return
-      }
-
-      const spot = await generateAndStoreWeeklySpotDescription(spotId)
+      const spot = await invokeWeeklyDescription({ spotId })
       res.status(201).json({
         id: spot.id,
         weeklyGeneratedDescription: spot.weeklyGeneratedDescription,
         weeklyGeneratedAt: spot.weeklyGeneratedAt?.toISOString() ?? null,
       })
     } catch (error) {
-      if (error instanceof WeeklyDescriptionCooldownError) {
+      if (error instanceof ForecastLambdaError && error.status === 429) {
+        const payload = error.payload as { nextAvailableAt?: string } | undefined
         res.status(429).json({
           error: error.message,
-          nextAvailableAt: error.nextAvailableAt.toISOString(),
+          nextAvailableAt: payload?.nextAvailableAt ?? null,
         })
         return
       }
       const message =
         error instanceof Error ? error.message : 'Failed to generate description'
-      const status = message.includes('OPENAI_API_KEY') ? 503 : 400
+      const status =
+        error instanceof ForecastLambdaError
+          ? error.status
+          : message.includes('OPENAI_API_KEY') || message.includes('not reachable')
+            ? 503
+            : 400
       res.status(status).json({ error: message })
     }
   },

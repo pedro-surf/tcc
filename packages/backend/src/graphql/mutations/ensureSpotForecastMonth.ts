@@ -3,7 +3,10 @@ import { builder, prisma } from '../builder'
 import { requireUser, type Context } from '../context'
 import { SpotForecastMonthRef } from '../objects/SpotForecastMonth'
 import { canViewSpot } from '../utils/spotVisibility'
-import { ingestSpotMonth } from '../../forecast/ingestSpotMonth'
+import {
+  ForecastLambdaError,
+  invokeIngestSpotMonth,
+} from '../../jobs/invokeForecastLambda'
 
 builder.mutationField('ensureSpotForecastMonth', (t) =>
   t.field({
@@ -24,13 +27,16 @@ builder.mutationField('ensureSpotForecastMonth', (t) =>
       }
 
       try {
-        return await ingestSpotMonth({
+        return await invokeIngestSpotMonth({
           spotId: access.id,
           year: args.year,
           month: args.month,
           requestedById: user.id,
         })
       } catch (error) {
+        if (error instanceof ForecastLambdaError) {
+          throw new GraphQLError(error.message)
+        }
         throw new GraphQLError(
           error instanceof Error
             ? error.message

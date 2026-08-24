@@ -1,3 +1,3 @@
 ![alt text](<Arquitetura de sistema para surfe.png>)
 
-Weekly marine ingest and AI outlooks are triggered by `@thesis/ai-forecast` (Lambda/cron) against the backend job `POST /internal/jobs/weekly-forecast`. The backend remains the only proxy to Open-Meteo and OpenAI.
+Weekly marine ingest and AI outlooks run in `@thesis/ai-forecast` (Lambda + serverless-offline). The backend GraphQL/REST layer only invokes that function; Open-Meteo, OpenAI, and forecast Prisma writes happen there.

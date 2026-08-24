@@ -1,42 +1,64 @@
 # AI Surf Forecast
 
-Weekly batch job for surf forecasts and AI outlooks.
+Lambda that owns **heavy forecast work**: Open-Meteo/WWO, OpenAI, and Prisma writes.
 
-This package is a **thin Lambda / cron client**. It does not call Open-Meteo or OpenAI itself. The backend already proxies those APIs and owns ingest + ranking + weekly descriptions, so the job only triggers:
+The GraphQL API only authenticates and **invokes this function**. It does not call marine APIs or OpenAI on the request thread.
 
-`POST /internal/jobs/weekly-forecast`
+## Jobs
 
-That endpoint, for every public spot:
+| HTTP | Payload | What it does |
+|---|---|---|
+| `POST /jobs/ingest-month` | `{ spotId, year, month, requestedById, force?, allowUpcoming? }` | Fetch + persist one calendar month |
+| `POST /jobs/weekly-description` | `{ spotId, skipCooldown? }` | OpenAI weekly outlook for one spot |
+| `POST /jobs/weekly-forecast` | `{}` | All public spots: force-refresh next-week months, then AI outlooks |
+| EventBridge schedule | — | Same as `weekly-forecast` |
 
-1. Refreshes the current (and if needed next) month of marine forecast via the existing ingest path (`ensureSpotForecastMonth` / `ingestSpotMonth`)
-2. Writes `SpotForecast` rows (calendar fill) so next-week ranking can run in SQL
-3. Generates the weekly AI outlook (`generateAndStoreWeeklySpotDescription`) from those forecast rows
+Auth: `x-cron-secret` must match `CRON_SECRET` (CloudWatch schedule is trusted).
 
-The web app then ranks spots by **circular angle proximity** in Postgres (`angle_diff`: 350° is close to 10°, negatives wrap), using spot `idealWindDir` / `idealSwellDir` plus extra `SpotForecast.ideal = true` windows.
+Prisma uses the **same schema** as `@thesis/backend` (`packages/backend/prisma/schema.prisma`). Run `pnpm generate` from the backend so `@prisma/client` matches the DB.
 
-## Run locally
+## Local (serverless-offline)
 
-From the repo root, with the backend already running:
+This is the same HTTP invoke the backend uses (`FORECAST_LAMBDA_URL`).
 
 ```bash
-cd packages/ai-forecast
+# from repo root, with Postgres up and backend/.env present
 pnpm install
-BACKEND_URL=http://localhost:3000 CRON_SECRET=dev-secret pnpm job
+pnpm -F @thesis/backend generate
+pnpm -F @thesis/ai-forecast dev
 ```
 
-Backend `.env` must include the same `CRON_SECRET`. Optional `FORECAST_INGEST_USER_ID` if spots have no `createdById`.
+Offline listens on **http://localhost:4000**.
 
-## Lambda / cron
+```bash
+curl -X POST http://localhost:4000/jobs/weekly-forecast ^
+  -H "Content-Type: application/json" ^
+  -H "x-cron-secret: dev-secret"
+```
 
-Export `handler` from `src/handler.ts` (AWS Lambda Node 20+, EventBridge schedule `cron(0 12 ? * MON *)` or similar).
+Direct handler (no HTTP):
+
+```bash
+pnpm -F @thesis/ai-forecast job
+```
+
+`pnpm dev` at the repo root starts this alongside the API and web app.
+
+## Env
+
+Loaded from `packages/ai-forecast/.env` if present, otherwise empty values are filled from `packages/backend/.env`.
 
 | Env | Purpose |
 |---|---|
-| `BACKEND_URL` | Backend origin, e.g. `https://api.example.com` |
-| `CRON_SECRET` | Must match backend `CRON_SECRET` (`x-cron-secret` header) |
+| `DATABASE_URL` | Same Postgres URL as the backend |
+| `CRON_SECRET` | Shared with the backend invoke header |
+| `OPENAI_API_KEY` | Weekly outlooks |
+| `FORECAST_PROVIDER` | `open-meteo` (default) or `wwo` |
+| `FORECAST_INGEST_USER_ID` | Fallback user id for `SpotForecast.userId` |
+| `WWO_API_KEY` | Only if `FORECAST_PROVIDER=wwo` |
 
-Timeout: size it for `spot count × (marine fetch + OpenAI)`. Sequential per spot.
+Timeout: 300s. Size it for `spot count × (marine fetch + OpenAI)`. Sequential per spot.
 
-## Why not call marine/OpenAI from the Lambda?
+## Deploy
 
-Those live behind the backend so we keep one ingest path, one cache (`SpotForecastFetch`), and one ranking query. The Lambda is only the weekly trigger.
+`serverless.yml` is ready for AWS (Function URL + optional Monday 12:00 UTC schedule, disabled until you set `enabled: true`). Package Prisma’s query engine for the Lambda runtime when you deploy; local offline uses the workspace `node_modules` client.
