@@ -2,7 +2,9 @@ import { Link, useParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import ForecastTable from '../../ForecastTable'
 import WindRose from '../../WindRose'
+import WindRoseOverlap from '../../WindRoseOverlap'
 import '../../WindRose.css'
+import '../../WindRoseOverlap.css'
 import { useAuth } from '../../auth/AuthContext'
 import { mediaAbsoluteUrl } from '../../graphql/client'
 import {
@@ -144,6 +146,8 @@ export function SpotDetailsPage() {
       })),
     [forecastsQuery.data?.spotForecastsBySpot],
   )
+
+  const latestForecast = forecastRows[0] ?? null
 
   if (spotQuery.isLoading) {
     return <div className="spot-details">Loading spot…</div>
@@ -366,7 +370,39 @@ export function SpotDetailsPage() {
         ) : forecastRows.length === 0 ? (
           <p>No forecast rows for this spot yet.</p>
         ) : (
-          <ForecastTable data={forecastRows} />
+          <>
+            {latestForecast ? (
+              <div className="spot-details__match">
+                <div className="spot-details__match-head">
+                  <h3>Condition match</h3>
+                  <p className="spot-details__hint">
+                    Compares ideal spot directions to the latest forecast (
+                    {latestForecast.timestamp.toLocaleString()}).
+                  </p>
+                </div>
+                <div className="spot-details__match-roses">
+                  <WindRoseOverlap
+                    label="Swell direction"
+                    idealAngle={spot.idealSwellDir ?? 180}
+                    actualAngle={latestForecast.swellDir}
+                    idealLabel="Ideal swell"
+                    actualLabel="Forecast swell"
+                    size={150}
+                  />
+                  <WindRoseOverlap
+                    label="Wind direction"
+                    idealAngle={spot.idealWindDir ?? 0}
+                    actualAngle={latestForecast.windDir}
+                    idealLabel="Ideal wind"
+                    actualLabel="Forecast wind"
+                    size={150}
+                    showLegend
+                  />
+                </div>
+              </div>
+            ) : null}
+            <ForecastTable data={forecastRows} />
+          </>
         )}
       </section>
 

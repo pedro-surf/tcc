@@ -3,6 +3,7 @@ import { Field, Form, Formik } from 'formik'
 import { useMemo, useState } from 'react'
 import { FormField } from '../../components/forms/FormField'
 import { FormSelect } from '../../components/forms/FormSelect'
+import SpotLocationPicker from '../../components/map/SpotLocationPicker'
 import WindRose from '../../WindRose'
 import '../../WindRose.css'
 import {
@@ -134,7 +135,7 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
           }
         }}
       >
-        {({ isSubmitting, values, setFieldValue, status }) => (
+        {({ isSubmitting, values, setFieldValue, status, errors, touched }) => (
           <Form className="create-spot__form">
             <div className="create-spot__grid">
               <Field name="name">
@@ -213,32 +214,6 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
                 )}
               </Field>
 
-              <Field name="lat">
-                {({ field, form }: any) => (
-                  <FormField
-                    label="Latitude"
-                    type="number"
-                    step="any"
-                    required
-                    field={field}
-                    form={form}
-                  />
-                )}
-              </Field>
-
-              <Field name="lng">
-                {({ field, form }: any) => (
-                  <FormField
-                    label="Longitude"
-                    type="number"
-                    step="any"
-                    required
-                    field={field}
-                    form={form}
-                  />
-                )}
-              </Field>
-
               <Field name="strongSwellTolerance">
                 {({ field, form }: any) => (
                   <FormSelect
@@ -278,6 +253,35 @@ export function CreateSpot({ onCreated, onCancel }: Props) {
                   />
                 )}
               </Field>
+            </div>
+
+            <div className="create-spot__location">
+              <span className="form-field__label">
+                Location on map <span aria-hidden="true">*</span>
+              </span>
+              <SpotLocationPicker
+                value={
+                  values.lat && values.lng
+                    ? {
+                        lat: Number(values.lat),
+                        lng: Number(values.lng),
+                      }
+                    : null
+                }
+                onChange={(coords) => {
+                  void setFieldValue('lat', String(coords.lat), true)
+                  void setFieldValue('lng', String(coords.lng), true)
+                }}
+              />
+              {(touched.lat || touched.lng) && (errors.lat || errors.lng) ? (
+                <span className="form-field__error">
+                  {String(errors.lat || errors.lng)}
+                </span>
+              ) : !values.lat || !values.lng ? (
+                <span className="form-field__hint">
+                  Pick a point on the map before submitting.
+                </span>
+              ) : null}
             </div>
 
             <Field name="description">

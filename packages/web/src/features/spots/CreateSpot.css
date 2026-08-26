@@ -60,6 +60,18 @@
   margin-top: 3px;
 }
 
+.create-spot__location {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.create-spot__location .form-field__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
 .create-spot__media {
   display: flex;
   flex-direction: column;

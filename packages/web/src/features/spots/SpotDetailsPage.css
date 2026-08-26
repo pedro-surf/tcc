@@ -202,6 +202,27 @@
   padding-top: 8px;
 }
 
+.spot-details__match {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.spot-details__match-head h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.spot-details__match-roses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 10px;
+}
+
 .spot-details__inline-form {
   display: flex;
   flex-direction: column;
