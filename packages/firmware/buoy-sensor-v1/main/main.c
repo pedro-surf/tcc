@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -11,12 +13,7 @@
 
 static const char *TAG = "main";
 
-#define SAMPLE_PERIOD_MS 100  /* 10 Hz */
-#define SAMPLE_HZ        (1000 / SAMPLE_PERIOD_MS)
-/* UART is chatty at 10 Hz; keep serial sparse once SD logging is active. */
-#define UART_LOG_EVERY_N 10
-/* Public broker — publish at 1 Hz (every UART line). Set to 1 for full 10 Hz. */
-#define MQTT_PUBLISH_EVERY_N UART_LOG_EVERY_N
+#define SAMPLE_HZ  (1000 / SAMPLE_PERIOD_MS)
 
 static void sensor_task(void *arg)
 {
@@ -24,15 +21,18 @@ static void sensor_task(void *arg)
     uint32_t sample_n = 0;
     bool logging = false;
 
+#if ENABLE_SD
     if (storage_is_ready() && storage_start_session(SAMPLE_HZ) == ESP_OK) {
         logging = true;
     } else {
-        ESP_LOGW(TAG, "CSV session not started — UART + MQTT only");
+        ESP_LOGW(TAG, "CSV session not started");
     }
+#endif
 
     while (1) {
         sensor_read_all(&data);
 
+#if ENABLE_SD
         if (logging) {
             esp_err_t err = storage_log_sample(&data);
             if (err != ESP_OK) {
@@ -41,10 +41,13 @@ static void sensor_task(void *arg)
                 logging = false;
             }
         }
+#endif
 
+#if ENABLE_MQTT
         if ((sample_n % MQTT_PUBLISH_EVERY_N) == 0) {
             mqtt_publish_sample(&data);
         }
+#endif
 
         if ((sample_n % UART_LOG_EVERY_N) == 0) {
             ESP_LOGI(TAG,
@@ -66,7 +69,8 @@ static void sensor_task(void *arg)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "buoy-sensor-v1: I2C sensors + SD CSV + MQTT");
+    ESP_LOGI(TAG, "buoy-sensor-v1: SD=%d MQTT=%d  mqtt_every=%d",
+             ENABLE_SD, ENABLE_MQTT, MQTT_PUBLISH_EVERY_N);
 
     i2c_master_init();
 
@@ -74,18 +78,26 @@ void app_main(void)
         ESP_LOGW(TAG, "One or more sensors failed init — continuing to read anyway");
     }
 
+#if ENABLE_SD
     esp_err_t sd_err = storage_init();
     if (sd_err != ESP_OK) {
         ESP_LOGW(TAG, "storage_init failed (%s) — sampling continues without SD",
                  esp_err_to_name(sd_err));
     }
+#else
+    ESP_LOGI(TAG, "SD disabled (ENABLE_SD=0)");
+#endif
 
+#if ENABLE_MQTT
     if (wifi_init() != ESP_OK) {
         ESP_LOGW(TAG, "Wi-Fi not up yet — MQTT will retry in the background");
     }
     if (mqtt_init() != ESP_OK) {
         ESP_LOGW(TAG, "MQTT client failed to start");
     }
+#else
+    ESP_LOGI(TAG, "MQTT disabled (ENABLE_MQTT=0)");
+#endif
 
     xTaskCreate(sensor_task, "sensor_task", 6144, NULL, 5, NULL);
 }

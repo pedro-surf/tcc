@@ -28,14 +28,53 @@ const recent: BuoySample[] = []
 let connected = false
 
 function num(value: unknown, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return fallback
 }
 
-function parseSample(topic: string, raw: Buffer): BuoySample | null {
-  let body: Record<string, unknown>
+function payloadToUtf8(raw: unknown): string {
+  if (typeof raw === 'string') return raw
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8')
+  if (raw instanceof Uint8Array) return Buffer.from(raw).toString('utf8')
+  return String(raw ?? '')
+}
+
+function asObject(parsed: unknown): Record<string, unknown> | null {
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed)
+    } catch {
+      return null
+    }
+  }
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    return parsed as Record<string, unknown>
+  }
+  return null
+}
+
+function parseSample(topic: string, raw: unknown): BuoySample | null {
+  const text = payloadToUtf8(raw).trim()
+  if (!text) {
+    console.warn(`[buoy-mqtt] empty payload on ${topic}`)
+    return null
+  }
+
+  let parsed: unknown
   try {
-    body = JSON.parse(raw.toString('utf8')) as Record<string, unknown>
+    parsed = JSON.parse(text)
   } catch {
+    console.warn(`[buoy-mqtt] not JSON on ${topic}: ${text.slice(0, 180)}`)
+    return null
+  }
+
+  const body = asObject(parsed)
+  if (!body) {
+    console.warn(`[buoy-mqtt] unexpected JSON on ${topic}: ${text.slice(0, 180)}`)
     return null
   }
 
@@ -45,9 +84,9 @@ function parseSample(topic: string, raw: Buffer): BuoySample | null {
       ? body.device
       : deviceFromTopic || 'unknown'
 
-  return {
+  const sample: BuoySample = {
     device,
-    timestamp: num(body.t_ms),
+    timestamp: num(body.t_ms ?? body.timestamp),
     ax: num(body.ax),
     ay: num(body.ay),
     az: num(body.az),
@@ -57,9 +96,26 @@ function parseSample(topic: string, raw: Buffer): BuoySample | null {
     mx: num(body.mx),
     my: num(body.my),
     mz: num(body.mz),
-    pressure: num(body.p),
-    temperature: num(body.tc),
+    pressure: num(body.p ?? body.pressure),
+    temperature: num(body.tc ?? body.temperature),
   }
+
+  const looksEmpty =
+    sample.timestamp === 0 &&
+    sample.ax === 0 &&
+    sample.ay === 0 &&
+    sample.az === 0 &&
+    !('t_ms' in body) &&
+    !('ax' in body)
+
+  if (looksEmpty) {
+    console.warn(
+      `[buoy-mqtt] ignored empty message on ${topic} keys=${Object.keys(body).join(',') || '(none)'} raw=${text.slice(0, 180)}`,
+    )
+    return null
+  }
+
+  return sample
 }
 
 function pushSample(sample: BuoySample) {
@@ -86,9 +142,12 @@ export function onBuoySample(handler: (sample: BuoySample) => void): () => void 
 export function startBuoyMqtt() {
   const client = mqtt.connect(MQTT_URL, {
     clientId: `surf-log-backend-${Math.random().toString(16).slice(2, 8)}`,
+    protocolVersion: 4,
     clean: true,
     reconnectPeriod: 3000,
   })
+
+  let logged = 0
 
   client.on('connect', () => {
     connected = true
@@ -114,6 +173,10 @@ export function startBuoyMqtt() {
   })
 
   client.on('message', (topic, payload) => {
+    if (logged < 8) {
+      console.log(`[buoy-mqtt] ${topic} ${payloadToUtf8(payload).slice(0, 300)}`)
+      logged += 1
+    }
     const sample = parseSample(topic, payload)
     if (sample) {
       pushSample(sample)

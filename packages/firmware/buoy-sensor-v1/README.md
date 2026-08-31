@@ -52,7 +52,8 @@ Live samples go to the public broker (no account needed):
 | Host | `broker.emqx.io` |
 | Port | `1883` (plain MQTT) |
 | Topic | `buoy-sensor-v1/buoy-<last3-mac-bytes>/sample` |
-| Rate | 1 Hz (same as UART). Set `MQTT_PUBLISH_EVERY_N` to `1` for 10 Hz |
+| Rate | `MQTT_PUBLISH_EVERY_N` in `main/config.h` (`1` = 10 Hz, `10` = 1 Hz) |
+| Switches | `ENABLE_SD` / `ENABLE_MQTT` in `main/config.h` |
 | Wi-Fi | SSID `Pedro` in `components/wifi/wifi.c` |
 
 Payload is JSON with the same fields as the CSV row (`t_ms`, `ax`…`az`, `gx`…`gz`, `mx`…`mz`, `p`, `tc`).

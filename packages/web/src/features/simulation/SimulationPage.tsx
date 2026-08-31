@@ -1,13 +1,10 @@
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   generateMockTrajectory,
   sampleTrajectory,
 } from './mockTrajectory'
-import { BoardActor, OceanPlane, PathTrace } from './SimulationScene'
-import './SimulationPage.css'
+import { SimulationViewport } from './SimulationViewport'
 
 export function SimulationPage() {
   const ride = useMemo(() => generateMockTrajectory(18, 30), [])
@@ -49,28 +46,7 @@ export function SimulationPage() {
 
   return (
     <div className="simulation-page">
-      <Canvas shadows className="simulation-page__canvas">
-        <color attach="background" args={['#082f49']} />
-        <fog attach="fog" args={['#082f49', 18, 55]} />
-        <PerspectiveCamera makeDefault position={[10, 8, 14]} fov={45} />
-        <ambientLight intensity={0.55} />
-        <directionalLight
-          castShadow
-          position={[12, 16, 8]}
-          intensity={1.1}
-          shadow-mapSize={[1024, 1024]}
-        />
-        <OceanPlane />
-        <PathTrace ride={ride} progress={progress} />
-        <BoardActor frame={frame} />
-        <OrbitControls
-          makeDefault
-          target={[frame.x, frame.y, frame.z]}
-          maxPolarAngle={Math.PI * 0.49}
-          minDistance={4}
-          maxDistance={40}
-        />
-      </Canvas>
+      <SimulationViewport frame={frame} ride={ride} progress={progress} />
 
       <header className="simulation-page__top">
         <Link to="/" className="simulation-page__back">

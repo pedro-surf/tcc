@@ -28,9 +28,10 @@ function createSurfboardGeometry() {
 
 type BoardActorProps = {
   frame: TrajectoryFrame
+  showMarker?: boolean
 }
 
-export function BoardActor({ frame }: BoardActorProps) {
+export function BoardActor({ frame, showMarker = true }: BoardActorProps) {
   const group = useRef<THREE.Group>(null!)
   const geometry = useMemo(() => createSurfboardGeometry(), [])
 
@@ -54,25 +55,27 @@ export function BoardActor({ frame }: BoardActorProps) {
         <meshStandardMaterial color="#0ea5e9" />
       </mesh>
 
-      <Html
-        position={[0, 0.85, 0]}
-        center
-        distanceFactor={10}
-        style={{ pointerEvents: 'none' }}
-      >
-        <div className="sim-board-marker">
-          <div className="sim-board-marker__title">Board</div>
-          <div>
-            <span>Dist</span> {frame.distance.toFixed(1)} m
+      {showMarker ? (
+        <Html
+          position={[0, 0.85, 0]}
+          center
+          distanceFactor={10}
+          style={{ pointerEvents: 'none' }}
+        >
+          <div className="sim-board-marker">
+            <div className="sim-board-marker__title">Board</div>
+            <div>
+              <span>Dist</span> {frame.distance.toFixed(1)} m
+            </div>
+            <div>
+              <span>Speed</span> {(frame.speed * 3.6).toFixed(1)} km/h
+            </div>
+            <div>
+              <span>Height</span> {frame.height.toFixed(2)} m
+            </div>
           </div>
-          <div>
-            <span>Speed</span> {(frame.speed * 3.6).toFixed(1)} km/h
-          </div>
-          <div>
-            <span>Height</span> {frame.height.toFixed(2)} m
-          </div>
-        </div>
-      </Html>
+        </Html>
+      ) : null}
     </group>
   )
 }

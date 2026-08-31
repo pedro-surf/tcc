@@ -173,7 +173,12 @@ function App({ children }: Props) {
           >
             Live buoy
           </Link>
-          <Link to="/simulation" className="app-nav__btn app-nav__link">
+          <Link
+            to="/simulation"
+            className={`app-nav__btn app-nav__link${
+              location.pathname.startsWith('/simulation') ? ' is-active' : ''
+            }`}
+          >
             Simulation
           </Link>
         </nav>

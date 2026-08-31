@@ -17,9 +17,9 @@
     "declarationMap": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "lib": ["es2021"],
+    "lib": ["es2022"],
     "strictPropertyInitialization": false,
-    "target": "ES2021",
+    "target": "ES2022",
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "noImplicitAny": false,

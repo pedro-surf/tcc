@@ -37,14 +37,7 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <Routes>
             <Route path="/simulation" element={<SimulationPage />} />
-            <Route
-              path="/live"
-              element={
-                <AppShell>
-                  <LiveBuoyPage />
-                </AppShell>
-              }
-            />
+            <Route path="/live" element={<LiveBuoyPage />} />
             <Route
               path="/spots/:spotId"
               element={

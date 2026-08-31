@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Board3D } from '../../Board'
-import SensorCharts from '../../SensorCharts'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { API_BASE_URL } from '../../graphql/client'
-import type { Sample, Session } from '../../types'
-import './LiveBuoyPage.css'
+import type { Sample } from '../../types'
+import {
+  type TrajectoryFrame,
+} from '../simulation/mockTrajectory'
+import { SimulationViewport } from '../simulation/SimulationViewport'
 
 type LiveSample = Sample & {
   device: string
@@ -20,12 +22,32 @@ type Snapshot = {
 }
 
 const MAX_POINTS = 300
+const REST_POSE: TrajectoryFrame = {
+  t: 0,
+  x: 6,
+  y: 0.22,
+  z: 0,
+  pitch: 0,
+  roll: 0,
+  yaw: 0,
+  speed: 0,
+  height: 0.22,
+  distance: 0,
+}
+
+function accelToTilt(sample: LiveSample) {
+  return {
+    roll: Math.atan2(sample.ay, sample.az),
+    pitch: Math.atan2(-sample.ax, Math.hypot(sample.ay, sample.az)),
+  }
+}
 
 export function LiveBuoyPage() {
   const [samples, setSamples] = useState<LiveSample[]>([])
   const [mqtt, setMqtt] = useState(false)
   const [streamOk, setStreamOk] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const filter = useRef({ roll: 0, pitch: 0, yaw: 0, tSec: 0, primed: false })
 
   useEffect(() => {
     const source = new EventSource(`${API_BASE_URL}/live/buoy/stream`)
@@ -53,62 +75,93 @@ export function LiveBuoyPage() {
   }, [])
 
   const latest = samples.at(-1)
-  const session: Session = useMemo(
-    () => ({
-      id: latest?.device ?? 'buoy-live',
-      samples,
-      results: [],
-      intervalMs: 1000,
-      manuevers: [],
-      predictions: [],
-    }),
-    [latest?.device, samples],
-  )
+
+  const frame = useMemo(() => {
+    if (!latest) return REST_POSE
+
+    const tilt = accelToTilt(latest)
+    const state = filter.current
+    const tSec = latest.timestamp / 1000
+    const dt = state.primed
+      ? Math.min(0.25, Math.max(0.02, tSec - state.tSec || 0.1))
+      : 0.1
+    const toRad = Math.PI / 180
+    const alpha = 0.96
+
+    state.roll = alpha * (state.roll + latest.gx * toRad * dt) + (1 - alpha) * tilt.roll
+    state.pitch =
+      alpha * (state.pitch + latest.gy * toRad * dt) + (1 - alpha) * tilt.pitch
+    state.yaw += latest.gz * toRad * dt
+    state.tSec = tSec
+    state.primed = true
+
+    return {
+      t: tSec,
+      x: REST_POSE.x,
+      y: REST_POSE.y,
+      z: REST_POSE.z,
+      pitch: state.pitch,
+      roll: state.roll,
+      yaw: state.yaw,
+      speed: Math.hypot(latest.gx, latest.gy, latest.gz) * (Math.PI / 180),
+      height: REST_POSE.y,
+      distance: 0,
+    } satisfies TrajectoryFrame
+  }, [latest])
 
   return (
-    <div className="live-buoy">
-      <div className="live-buoy__status">
-        <span className={streamOk ? 'is-on' : 'is-off'}>
-          app {streamOk ? 'live' : 'offline'}
-        </span>
-        <span className={mqtt ? 'is-on' : 'is-off'}>
-          mqtt {mqtt ? 'up' : 'down'}
-        </span>
-        {latest ? (
-          <span>
-            {latest.device} · P {latest.pressure.toFixed(0)} Pa · T{' '}
-            {latest.temperature.toFixed(1)} °C · {samples.length} pts
-          </span>
-        ) : (
-          <span>waiting for buoy-sensor-v1…</span>
-        )}
-      </div>
-      {error ? <p className="live-buoy__error">{error}</p> : null}
+    <div className="simulation-page">
+      <SimulationViewport frame={frame} showMarker={false} />
 
-      <div className="live-buoy__grid">
-        <div className="live-buoy__chart">
-          <SensorCharts
-            session={session}
-            setCursor={() => undefined}
-            title="Live IMU"
-          />
+      <header className="simulation-page__top">
+        <Link to="/" className="simulation-page__back">
+          ← Back
+        </Link>
+        <div>
+          <h1>Live buoy</h1>
+          <p>
+            {streamOk ? 'Streaming from backend' : 'Connecting…'}
+            {mqtt ? ' · MQTT up' : ' · MQTT down'}
+            {latest ? ` · ${latest.device}` : ''}
+          </p>
+          {error ? <p>{error}</p> : null}
         </div>
-        <div className="live-buoy__board">
-          <h3>Live orientation</h3>
-          <div className="live-buoy__canvas">
-            <Board3D sample={latest} />
-          </div>
-          {latest ? (
-            <p>
-              acc {latest.ax.toFixed(2)} {latest.ay.toFixed(2)}{' '}
-              {latest.az.toFixed(2)} g · gyro {latest.gx.toFixed(1)}{' '}
-              {latest.gy.toFixed(1)} {latest.gz.toFixed(1)} dps · mag{' '}
-              {latest.mx.toFixed(1)} {latest.my.toFixed(1)} {latest.mz.toFixed(1)}{' '}
-              µT
-            </p>
-          ) : null}
+      </header>
+
+      <aside className="simulation-page__hud">
+        <div>
+          <span>Accel</span>
+          <strong>
+            {latest
+              ? `${latest.ax.toFixed(2)} ${latest.ay.toFixed(2)} ${latest.az.toFixed(2)}`
+              : '—'}
+          </strong>
         </div>
-      </div>
+        <div>
+          <span>Gyro</span>
+          <strong>
+            {latest
+              ? `${latest.gx.toFixed(1)} ${latest.gy.toFixed(1)} ${latest.gz.toFixed(1)}`
+              : '—'}
+          </strong>
+        </div>
+        <div>
+          <span>Mag</span>
+          <strong>
+            {latest
+              ? `${latest.mx.toFixed(0)} ${latest.my.toFixed(0)} ${latest.mz.toFixed(0)}`
+              : '—'}
+          </strong>
+        </div>
+        <div>
+          <span>P / T</span>
+          <strong>
+            {latest
+              ? `${latest.pressure.toFixed(0)} Pa / ${latest.temperature.toFixed(1)} °C`
+              : '—'}
+          </strong>
+        </div>
+      </aside>
     </div>
   )
 }
