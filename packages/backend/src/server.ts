@@ -9,6 +9,8 @@ import { loggingPlugin } from './graphql/logging'
 import { uploadRouter, UPLOAD_DIR } from './rest/upload'
 import { spotWeeklyDescriptionRouter } from './rest/spotWeeklyDescription'
 import { internalJobsRouter } from './rest/internalJobs'
+import { buoyLiveRouter } from './rest/buoyLive'
+import { startBuoyMqtt } from './mqtt/buoyLive'
 
 const app = express()
 
@@ -51,6 +53,7 @@ app.use('/uploads', express.static(UPLOAD_DIR))
 app.use('/upload', uploadRouter)
 app.use('/spots', spotWeeklyDescriptionRouter)
 app.use('/internal', express.json(), internalJobsRouter)
+app.use('/live/buoy', buoyLiveRouter)
 
 const yoga = createYoga<{
   req: Request
@@ -78,4 +81,7 @@ app.listen(port, () => {
     `Forecast lambda: ${process.env.FORECAST_LAMBDA_URL || 'http://localhost:4000'}`,
   )
   console.log(`Upload dir: ${path.resolve(UPLOAD_DIR)}`)
+  console.log(`Buoy live: GET http://localhost:${port}/live/buoy/stream`)
 })
+
+startBuoyMqtt()

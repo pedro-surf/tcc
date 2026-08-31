@@ -28,7 +28,19 @@ const COLORS = [
   "#0ea5e9",
   "#84cc16",
 ];
-const SENSORS = ["ax", "ay", "az", "gx", "gy", "gz", "mx", "my", "mz"];
+const SENSORS = [
+  "ax",
+  "ay",
+  "az",
+  "gx",
+  "gy",
+  "gz",
+  "mx",
+  "my",
+  "mz",
+  "pressure",
+  "temperature",
+];
 
 export default function SensorCharts({
   setCursor,
@@ -36,7 +48,7 @@ export default function SensorCharts({
   session,
   title = 'Signature'
 }: SensorChartsProps) {
-  const [sensors, setSensors] = useState(SENSORS);
+  const [sensors, setSensors] = useState(["ax", "ay", "az", "gx", "gy", "gz"]);
   return (
     <div style={{ width: "100%", height: 500 }}>
       <h3>{title}</h3>

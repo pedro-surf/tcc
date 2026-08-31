@@ -37,7 +37,8 @@ Firmware still talks to two I2C addresses on that shared bus:
 
 | Chip | I2C address | Role |
 |------|-------------|------|
-| MPU9250 | `0x68` | accel + gyro (+ mag stubbed) |
+| MPU9250 | `0x68` | accel + gyro |
+| AK8963 | `0x0C` | magnetometer (via MPU I2C bypass) |
 | BMP280 | `0x76` | pressure + temperature |
 
 ---
@@ -134,6 +135,7 @@ Optional: some shields also expose **3V** pads — for this schematic we still p
 Expected bring-up:
 
 - MPU `WHO_AM_I = 0x71` (some clones `0x70` / `0x73`) at `0x68`
+- AK8963 `WIA = 0x48` at `0x0C` (after MPU I2C bypass)
 - BMP chip ID `0x58` at `0x76`
 
 ### 3) microSD module — SPI
@@ -179,7 +181,7 @@ Card format: **FAT32**. Firmware writes:
 4. GY-91 wired with only **VIN, GND, SDA, SCL** for I2C  
 5. Leave GY-91 `NCS` / `CSB` / `SDO` unconnected  
 6. microSD on SPI pins 23 / 19 / 18 / 5, formatted FAT32  
-7. Flash firmware and confirm serial: MPU WHO_AM_I, BMP ID, `SD ready`, `Session CSV opened`
+7. Flash firmware and confirm serial: MPU WHO_AM_I, AK8963 WIA, BMP ID, `SD ready`, `Session CSV opened`
 
 ---
 
@@ -187,6 +189,5 @@ Card format: **FAT32**. Firmware writes:
 
 | Feature | Status |
 |---------|--------|
-| MPU9250 magnetometer (AK8963 @ `0x0C`) | On the same GY-91; stubbed in firmware for now |
 | Wi-Fi antenna / external RF | On-chip / module antenna; no extra GPIO in this schematic |
 | Solar / charge management beyond shield USB | Out of scope — shield USB charging is the illustrated path |

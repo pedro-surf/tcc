@@ -165,6 +165,14 @@ function App({ children }: Props) {
           >
             {isAuthenticated ? 'Account' : 'Sign in'}
           </button>
+          <Link
+            to="/live"
+            className={`app-nav__btn app-nav__link${
+              location.pathname.startsWith('/live') ? ' is-active' : ''
+            }`}
+          >
+            Live buoy
+          </Link>
           <Link to="/simulation" className="app-nav__btn app-nav__link">
             Simulation
           </Link>

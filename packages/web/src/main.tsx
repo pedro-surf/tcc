@@ -15,6 +15,7 @@ import { EventsPage } from './features/events/EventsPage'
 import { EventPage } from './features/events/EventPage'
 import { HeatJudgingPage } from './features/events/HeatJudgingPage'
 import { SpotRankingPage } from './features/ranking/SpotRankingPage'
+import { LiveBuoyPage } from './features/live/LiveBuoyPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,14 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <Routes>
             <Route path="/simulation" element={<SimulationPage />} />
+            <Route
+              path="/live"
+              element={
+                <AppShell>
+                  <LiveBuoyPage />
+                </AppShell>
+              }
+            />
             <Route
               path="/spots/:spotId"
               element={

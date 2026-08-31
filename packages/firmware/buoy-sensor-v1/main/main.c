@@ -7,6 +7,7 @@
 #include "i2c_bus.h"
 #include "sensor.h"
 #include "storage.h"
+#include "wifi.h"
 
 static const char *TAG = "main";
 
@@ -14,6 +15,8 @@ static const char *TAG = "main";
 #define SAMPLE_HZ        (1000 / SAMPLE_PERIOD_MS)
 /* UART is chatty at 10 Hz; keep serial sparse once SD logging is active. */
 #define UART_LOG_EVERY_N 10
+/* Public broker — publish at 1 Hz (every UART line). Set to 1 for full 10 Hz. */
+#define MQTT_PUBLISH_EVERY_N UART_LOG_EVERY_N
 
 static void sensor_task(void *arg)
 {
@@ -24,7 +27,7 @@ static void sensor_task(void *arg)
     if (storage_is_ready() && storage_start_session(SAMPLE_HZ) == ESP_OK) {
         logging = true;
     } else {
-        ESP_LOGW(TAG, "CSV session not started — UART-only sampling");
+        ESP_LOGW(TAG, "CSV session not started — UART + MQTT only");
     }
 
     while (1) {
@@ -39,15 +42,21 @@ static void sensor_task(void *arg)
             }
         }
 
+        if ((sample_n % MQTT_PUBLISH_EVERY_N) == 0) {
+            mqtt_publish_sample(&data);
+        }
+
         if ((sample_n % UART_LOG_EVERY_N) == 0) {
             ESP_LOGI(TAG,
                      "t=%lld us | accel=%.2f %.2f %.2f g | gyro=%.1f %.1f %.1f dps | "
-                     "P=%.0f Pa T=%.1f C%s",
+                     "mag=%.1f %.1f %.1f uT | P=%.0f Pa T=%.1f C%s%s",
                      (long long)data.timestamp,
                      data.ax, data.ay, data.az,
                      data.gx, data.gy, data.gz,
+                     data.mx, data.my, data.mz,
                      data.pressure, data.temperature,
-                     logging ? " | sd=on" : " | sd=off");
+                     logging ? " | sd=on" : " | sd=off",
+                     mqtt_is_connected() ? " | mqtt=on" : " | mqtt=off");
         }
 
         sample_n++;
@@ -57,7 +66,7 @@ static void sensor_task(void *arg)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "buoy-sensor-v1: I2C sensors + SD CSV logging");
+    ESP_LOGI(TAG, "buoy-sensor-v1: I2C sensors + SD CSV + MQTT");
 
     i2c_master_init();
 
@@ -71,5 +80,12 @@ void app_main(void)
                  esp_err_to_name(sd_err));
     }
 
-    xTaskCreate(sensor_task, "sensor_task", 4096, NULL, 5, NULL);
+    if (wifi_init() != ESP_OK) {
+        ESP_LOGW(TAG, "Wi-Fi not up yet — MQTT will retry in the background");
+    }
+    if (mqtt_init() != ESP_OK) {
+        ESP_LOGW(TAG, "MQTT client failed to start");
+    }
+
+    xTaskCreate(sensor_task, "sensor_task", 6144, NULL, 5, NULL);
 }

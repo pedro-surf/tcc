@@ -70,7 +70,7 @@ static float compensate_temperature(int32_t adc_T)
     int32_t var2 = (((((adc_T >> 4) - ((int32_t)dig_T1)) * ((adc_T >> 4) - ((int32_t)dig_T1))) >> 12) *
                     ((int32_t)dig_T3)) >> 14;
     t_fine = var1 + var2;
-    return (t_fine * 5 + 128) / 2560.0f; /* °C */
+    return (t_fine * 5 + 128) / 25600.0f; /* °C (datasheet: 0.01 °C then /100) */
 }
 
 static float compensate_pressure(int32_t adc_P)

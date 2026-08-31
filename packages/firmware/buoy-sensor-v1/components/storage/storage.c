@@ -6,6 +6,7 @@
 #include "driver/spi_common.h"
 #include "sdmmc_cmd.h"
 
+#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -38,10 +39,36 @@ static esp_err_t ensure_sessions_dir(void)
     }
 
     if (mkdir(STORAGE_SESSIONS_DIR, 0775) != 0 && errno != EEXIST) {
-        ESP_LOGE(TAG, "mkdir %s failed: errno=%d", STORAGE_SESSIONS_DIR, errno);
+        ESP_LOGE(TAG, "mkdir %s failed: errno=%d (%s)",
+                 STORAGE_SESSIONS_DIR, errno, strerror(errno));
         return ESP_FAIL;
     }
+    ESP_LOGI(TAG, "sessions dir ready: %s", STORAGE_SESSIONS_DIR);
     return ESP_OK;
+}
+
+static void log_dir(const char *path)
+{
+    DIR *dir = opendir(path);
+    if (!dir) {
+        ESP_LOGW(TAG, "cannot list %s: errno=%d (%s)", path, errno, strerror(errno));
+        return;
+    }
+
+    ESP_LOGI(TAG, "listing %s:", path);
+    struct dirent *ent;
+    int n = 0;
+    while ((ent = readdir(dir)) != NULL) {
+        ESP_LOGI(TAG, "  %s", ent->d_name);
+        if (++n >= 16) {
+            ESP_LOGI(TAG, "  ...");
+            break;
+        }
+    }
+    if (n == 0) {
+        ESP_LOGI(TAG, "  (empty)");
+    }
+    closedir(dir);
 }
 
 esp_err_t storage_init(void)
@@ -120,7 +147,14 @@ esp_err_t storage_start_session(int sample_hz)
 
     s_file = fopen(s_path, "w");
     if (!s_file) {
-        ESP_LOGE(TAG, "Failed to open %s (errno=%d)", s_path, errno);
+        ESP_LOGE(TAG, "Failed to open %s (errno=%d %s)",
+                 s_path, errno, strerror(errno));
+        if (errno == EINVAL) {
+            ESP_LOGE(TAG, "FAT rejected the name — need long-filename support "
+                     "(CONFIG_FATFS_LFN_HEAP) or an 8.3 name like SESS0001.CSV");
+        }
+        log_dir(STORAGE_MOUNT_POINT);
+        log_dir(STORAGE_SESSIONS_DIR);
         s_path[0] = '\0';
         return ESP_FAIL;
     }

@@ -7,6 +7,11 @@ export interface Sample {
     gx: number;
     gy: number;
     gz: number;
+    mx?: number;
+    my?: number;
+    mz?: number;
+    pressure?: number;
+    temperature?: number;
     lat?: number;
     lon?: number;
     fix?: number;
