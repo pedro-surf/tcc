@@ -20,7 +20,7 @@ pnpm install
 
 ---
 
-# ⚙️ Configuring a local database
+## ⚙️ Configuring a local database
 
 Create a `.env` file:
 
@@ -40,7 +40,7 @@ docker-compose up -d
 
 ---
 
-# 🧠 Running the project
+## 🧠 Running the project
 
 Lastly, execute the migrations and start the server.
 
@@ -61,11 +61,7 @@ pnpm -F @thesis/backend dev
 
 Next-week ranking (`spotWeekRanking`) stays in Postgres (`angle_diff`). See `packages/ai-forecast/readme.md`.
 
-## To-Dos:
-- Automation GQL: mutations; make queries name camel case
-- Check if n relationships load
-
-# Seeding http://localhost:3000/graphql
+## Seeding http://localhost:3000/graphql
 
 ```
 mutation {
@@ -144,3 +140,16 @@ mutation {
   }
 }
 ```
+
+# Techincal specifications
+
+## Forecast angle calculation helpers
+Those two Postgres functions measure how far apart two compass directions are, treating degrees as a circle.
+
+`angle_wrap(deg)`
+Puts any angle into 0–360. Negatives and values over 360 wrap (-10 → 350, 370 → 10). NULL becomes 0.
+
+`angle_diff(a, b)`
+Shortest turn between two headings, always 0–180. Linear subtraction would say 350° and 10° are 340° apart; this says they are 20° apart.
+
+Spot ranking uses that in SQL so “ideal swell/wind direction” matches forecast direction the way a surfer thinks about it, not as a straight number line. A 40° swell mismatch is a near miss; a 180° mismatch is the opposite way.

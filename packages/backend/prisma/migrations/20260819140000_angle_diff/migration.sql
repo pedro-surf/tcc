@@ -5,7 +5,10 @@ RETURNS double precision
 LANGUAGE sql
 IMMUTABLE
 AS $$
-  SELECT MOD(MOD(COALESCE(deg, 0), 360) + 360, 360);
+  SELECT MOD(
+    MOD(COALESCE(deg, 0)::numeric, 360::numeric) + 360::numeric,
+    360::numeric
+  )::double precision;
 $$;
 
 CREATE OR REPLACE FUNCTION angle_diff(a double precision, b double precision)

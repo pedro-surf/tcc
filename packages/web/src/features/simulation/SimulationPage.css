@@ -50,12 +50,14 @@
 .simulation-page__back {
   display: inline-flex;
   align-items: center;
-  padding: 0.55rem 0.9rem;
-  border-radius: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.35);
   color: #f8fafc;
   font-weight: 600;
+  font-size: 0.82rem;
   text-decoration: none;
   backdrop-filter: blur(6px);
 }

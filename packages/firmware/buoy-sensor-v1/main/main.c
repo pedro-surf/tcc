@@ -69,8 +69,8 @@ static void sensor_task(void *arg)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "buoy-sensor-v1: SD=%d MQTT=%d  mqtt_every=%d",
-             ENABLE_SD, ENABLE_MQTT, MQTT_PUBLISH_EVERY_N);
+    ESP_LOGI(TAG, "buoy-sensor-v1: SD=%d MQTT=%d MAG=%d  mqtt_every=%d",
+             ENABLE_SD, ENABLE_MQTT, ENABLE_MAG, MQTT_PUBLISH_EVERY_N);
 
     i2c_master_init();
 

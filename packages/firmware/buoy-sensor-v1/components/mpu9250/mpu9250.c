@@ -1,5 +1,6 @@
 #include "mpu9250.h"
 #include "i2c_bus.h"
+#include "config.h"
 
 #include "esp_err.h"
 #include "esp_log.h"
@@ -39,7 +40,9 @@ static bool s_mag_ready;
 static float s_mag_adj[3] = {1.0f, 1.0f, 1.0f};
 static float s_mag_last[3];
 
+#if ENABLE_MAG
 static bool ak8963_init(void);
+#endif
 
 static esp_err_t write_reg(uint8_t addr, uint8_t reg, uint8_t val)
 {
@@ -80,6 +83,7 @@ bool mpu9250_init(void)
     write_reg(MPU_ADDR, ACCEL_CONFIG, 0x00);
     write_reg(MPU_ADDR, GYRO_CONFIG, 0x00);
 
+#if ENABLE_MAG
     /* Disable MPU I2C master so the AK8963 appears on the shared bus. */
     write_reg(MPU_ADDR, USER_CTRL, 0x00);
     write_reg(MPU_ADDR, INT_PIN_CFG, 0x02);
@@ -88,6 +92,9 @@ bool mpu9250_init(void)
     if (!ak8963_init()) {
         ESP_LOGW(TAG, "AK8963 mag init failed — mx/my/mz will stay 0");
     }
+#else
+    ESP_LOGI(TAG, "AK8963 mag disabled (ENABLE_MAG=0)");
+#endif
 
     return true;
 }
@@ -128,6 +135,7 @@ void mpu9250_read_gyro(float *gx, float *gy, float *gz)
     *gz = raw_gz / 131.0f;
 }
 
+#if ENABLE_MAG
 static bool ak8963_init(void)
 {
     uint8_t wia = 0;
@@ -172,6 +180,7 @@ static bool ak8963_init(void)
              asa[0], asa[1], asa[2]);
     return true;
 }
+#endif
 
 void mpu9250_read_mag(float *mx, float *my, float *mz)
 {

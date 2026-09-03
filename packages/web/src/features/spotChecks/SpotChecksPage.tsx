@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   PaginatedList,
   type ListColumn,
@@ -15,11 +16,8 @@ type SpotCheckRow = GetSpotChecksQuery['spotchecks'][number]
 
 const PAGE_SIZE = 10
 
-type Props = {
-  onRequireAuth?: () => void
-}
-
-export function SpotChecksPage({ onRequireAuth }: Props) {
+export function SpotChecksPage() {
+  const navigate = useNavigate()
   const [view, setView] = useState<'list' | 'create'>('list')
   const [page, setPage] = useState(0)
   const [listKey, setListKey] = useState(0)
@@ -89,7 +87,7 @@ export function SpotChecksPage({ onRequireAuth }: Props) {
       <div className="spot-checks-page">
         <CreateSpotCheck
           onCancel={() => setView('list')}
-          onRequireAuth={onRequireAuth}
+          onRequireAuth={() => navigate('/account')}
           onCreated={() => {
             setListKey((key) => key + 1)
             setView('list')

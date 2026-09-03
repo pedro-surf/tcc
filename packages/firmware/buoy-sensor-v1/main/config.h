@@ -6,6 +6,7 @@
  */
 #define ENABLE_SD    0
 #define ENABLE_MQTT  1
+#define ENABLE_MAG  1  /* AK8963 on GY-91; extra I2C every sample */
 
 /* 10 Hz sampling. IMU loop always runs. */
 #define SAMPLE_PERIOD_MS  100

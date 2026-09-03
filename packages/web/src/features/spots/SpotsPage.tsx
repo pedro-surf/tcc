@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { CreateSpot } from './CreateSpot'
 import { SpotsList } from './SpotsList'
@@ -6,18 +7,15 @@ import './SpotsPage.css'
 
 type View = 'list' | 'create'
 
-type Props = {
-  onRequireAuth?: () => void
-}
-
-export function SpotsPage({ onRequireAuth }: Props) {
+export function SpotsPage() {
   const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
   const [view, setView] = useState<View>('list')
   const [listKey, setListKey] = useState(0)
 
   const handleCreateClick = () => {
     if (!isAuthenticated) {
-      onRequireAuth?.()
+      navigate('/account')
       return
     }
     setView('create')
