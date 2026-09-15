@@ -171,7 +171,7 @@ bool mqtt_is_connected(void)
 
 esp_err_t mqtt_publish_sample(const sensor_data_t *sample)
 {
-    char payload[320];
+    char payload[448];
 
     if (!s_mqtt || !s_mqtt_up || !sample) {
         return ESP_ERR_INVALID_STATE;
@@ -184,11 +184,13 @@ esp_err_t mqtt_publish_sample(const sensor_data_t *sample)
         "\"ax\":%.5f,\"ay\":%.5f,\"az\":%.5f,"
         "\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f,"
         "\"mx\":%.3f,\"my\":%.3f,\"mz\":%.3f,"
+        "\"roll\":%.5f,\"pitch\":%.5f,\"yaw\":%.5f,"
         "\"p\":%.2f,\"tc\":%.2f}",
         s_client_id, (long long)t_ms,
         sample->ax, sample->ay, sample->az,
         sample->gx, sample->gy, sample->gz,
         sample->mx, sample->my, sample->mz,
+        sample->roll, sample->pitch, sample->yaw,
         sample->pressure, sample->temperature);
 
     if (n < 0 || n >= (int)sizeof(payload)) {

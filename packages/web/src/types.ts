@@ -12,6 +12,9 @@ export interface Sample {
     mz?: number;
     pressure?: number;
     temperature?: number;
+    roll?: number;
+    pitch?: number;
+    yaw?: number;
     lat?: number;
     lon?: number;
     fix?: number;

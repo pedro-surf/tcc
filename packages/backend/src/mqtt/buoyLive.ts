@@ -15,6 +15,9 @@ export type BuoySample = {
   mz: number
   pressure: number
   temperature: number
+  roll?: number
+  pitch?: number
+  yaw?: number
 }
 
 const MQTT_URL = process.env.MQTT_BROKER_URL ?? 'mqtt://broker.emqx.io:1883'
@@ -98,6 +101,9 @@ function parseSample(topic: string, raw: unknown): BuoySample | null {
     mz: num(body.mz),
     pressure: num(body.p ?? body.pressure),
     temperature: num(body.tc ?? body.temperature),
+    roll: num(body.roll),
+    pitch: num(body.pitch),
+    yaw: num(body.yaw),
   }
 
   const looksEmpty =

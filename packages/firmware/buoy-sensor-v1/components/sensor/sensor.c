@@ -1,6 +1,7 @@
 #include "sensor.h"
 #include "mpu9250.h"
 #include "bmp280.h"
+#include "fusion.h"
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -21,6 +22,10 @@ bool sensor_init(void)
         ok = false;
     }
 
+    if (!fusion_init()) {
+        ESP_LOGW(TAG, "fusion init failed — roll/pitch/yaw will stay 0");
+    }
+
     return ok;
 }
 
@@ -33,4 +38,14 @@ void sensor_read_all(sensor_data_t *data)
     mpu9250_read_mag(&data->mx, &data->my, &data->mz);
 
     bmp280_read(&data->pressure, &data->temperature);
+
+    orientation_t ori = {0};
+    fusion_update(data->timestamp,
+                  data->ax, data->ay, data->az,
+                  data->gx, data->gy, data->gz,
+                  data->mx, data->my, data->mz,
+                  &ori);
+    data->roll = ori.roll;
+    data->pitch = ori.pitch;
+    data->yaw = ori.yaw;
 }

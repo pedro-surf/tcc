@@ -12,6 +12,9 @@ typedef struct {
 
     float pressure;     /* Pa */
     float temperature;  /* °C */
+
+    /* Complementary (or later KF): radians, MPU body frame. 0 if fusion off. */
+    float roll, pitch, yaw;
 } sensor_data_t;
 
 #endif

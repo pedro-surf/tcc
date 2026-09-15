@@ -14,20 +14,20 @@ Full build handoff schematic (pin tables + diagram): [`SCHEMATIC.md`](SCHEMATIC.
 ## What this build does
 
 1. Init I2C master
-2. Init MPU9250 (accel + gyro + AK8963 mag)
+2. Init MPU9250 (accel + gyro + optional AK8963 mag)
 3. Init BMP280 (compensated Pa / °C)
-4. Mount SD over SPI and append samples to a CSV session file (optional)
-5. Connect Wi-Fi and publish samples over MQTT (EMQX public broker)
-6. Log a subset of samples over UART (1 Hz)
+4. Complementary fusion → roll / pitch (yaw = gyro integrate); see [`components/fusion/FUSION.md`](components/fusion/FUSION.md)
+5. Mount SD over SPI and append samples to a CSV session file (optional)
+6. Connect Wi-Fi and publish samples over MQTT (EMQX public broker)
+7. Log a subset of samples over UART (1 Hz)
 
 ## SD CSV format
 
 Files land in `/sdcard/sessions/session_<boot_ms>.csv`.
 
 ```csv
-# schema=buoy-sensor-v1;version=1;sample_hz=10;device=buoy-sensor-v1;units=g,dps,uT,Pa,C
-timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,pressure_pa,temperature_c
-0,0.01200,-0.00400,0.99800,0.300,-0.100,0.000,0.000,0.000,0.000,101325.20,24.60
+# schema=buoy-sensor-v1;version=2;sample_hz=10;device=buoy-sensor-v1;units=g,dps,uT,rad,Pa,C
+timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,roll,pitch,yaw,pressure_pa,temperature_c
 ```
 
 | Column | Meaning | Backend mapping |
@@ -36,6 +36,7 @@ timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,pressure_pa,temperature_c
 | `ax,ay,az` | accel (g) | `Sample.ax/ay/az` |
 | `gx,gy,gz` | gyro (dps) | `Sample.gx/gy/gz` |
 | `mx,my,mz` | mag (µT), MPU body frame | `Sensor.data` |
+| `roll,pitch,yaw` | complementary orientation (rad); raw IMU still in ax…gz | — |
 | `pressure_pa` | BMP280 pressure | `Sensor.data` |
 | `temperature_c` | BMP280 temp | `Sensor.data` |
 
@@ -53,10 +54,10 @@ Live samples go to the public broker (no account needed):
 | Port | `1883` (plain MQTT) |
 | Topic | `buoy-sensor-v1/buoy-<last3-mac-bytes>/sample` |
 | Rate | `MQTT_PUBLISH_EVERY_N` in `main/config.h` (`1` = 10 Hz, `10` = 1 Hz) |
-| Switches | `ENABLE_SD` / `ENABLE_MQTT` in `main/config.h` |
+| Switches | `ENABLE_SD` / `ENABLE_MQTT` / `ENABLE_MAG` / `ENABLE_FUSION` in `main/config.h` |
 | Wi-Fi | SSID `Pedro` in `components/wifi/wifi.c` |
 
-Payload is JSON with the same fields as the CSV row (`t_ms`, `ax`…`az`, `gx`…`gz`, `mx`…`mz`, `p`, `tc`).
+Payload is JSON: raw IMU plus `roll`/`pitch`/`yaw` (rad) and `p`/`tc`.
 
 Watch from a PC:
 

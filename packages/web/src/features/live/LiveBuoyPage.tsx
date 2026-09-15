@@ -14,6 +14,9 @@ type LiveSample = Sample & {
   mz: number
   pressure: number
   temperature: number
+  roll?: number
+  pitch?: number
+  yaw?: number
 }
 
 type Snapshot = {
@@ -79,9 +82,30 @@ export function LiveBuoyPage() {
   const frame = useMemo(() => {
     if (!latest) return REST_POSE
 
+    const tSec = latest.timestamp / 1000
+    const speed = Math.hypot(latest.gx, latest.gy, latest.gz) * (Math.PI / 180)
+
+    if (
+      latest.roll !== undefined &&
+      latest.pitch !== undefined &&
+      latest.yaw !== undefined
+    ) {
+      return {
+        t: tSec,
+        x: REST_POSE.x,
+        y: REST_POSE.y,
+        z: REST_POSE.z,
+        roll: latest.roll,
+        pitch: latest.pitch,
+        yaw: latest.yaw,
+        speed,
+        height: REST_POSE.y,
+        distance: 0,
+      } satisfies TrajectoryFrame
+    }
+
     const tilt = accelToTilt(latest)
     const state = filter.current
-    const tSec = latest.timestamp / 1000
     const dt = state.primed
       ? Math.min(0.25, Math.max(0.02, tSec - state.tSec || 0.1))
       : 0.1
@@ -103,7 +127,7 @@ export function LiveBuoyPage() {
       pitch: state.pitch,
       roll: state.roll,
       yaw: state.yaw,
-      speed: Math.hypot(latest.gx, latest.gy, latest.gz) * (Math.PI / 180),
+      speed,
       height: REST_POSE.y,
       distance: 0,
     } satisfies TrajectoryFrame

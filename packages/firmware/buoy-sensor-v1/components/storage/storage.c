@@ -25,7 +25,7 @@ static uint32_t s_rows_since_flush;
 static int64_t s_session_start_us;
 
 static const char *CSV_HEADER =
-    "timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,pressure_pa,temperature_c\n";
+    "timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,roll,pitch,yaw,pressure_pa,temperature_c\n";
 
 static esp_err_t ensure_sessions_dir(void)
 {
@@ -161,8 +161,8 @@ esp_err_t storage_start_session(int sample_hz)
 
     /* Comment line keeps the file parseable while carrying import metadata. */
     fprintf(s_file,
-            "# schema=buoy-sensor-v1;version=1;sample_hz=%d;"
-            "device=buoy-sensor-v1;units=g,dps,uT,Pa,C\n",
+            "# schema=buoy-sensor-v1;version=2;sample_hz=%d;"
+            "device=buoy-sensor-v1;units=g,dps,uT,rad,Pa,C\n",
             sample_hz);
     fputs(CSV_HEADER, s_file);
     fflush(s_file);
@@ -186,11 +186,12 @@ esp_err_t storage_log_sample(const sensor_data_t *sample)
 
     int written = fprintf(
         s_file,
-        "%lld,%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.2f,%.2f\n",
+        "%lld,%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.5f,%.5f,%.5f,%.2f,%.2f\n",
         (long long)timestamp_ms,
         sample->ax, sample->ay, sample->az,
         sample->gx, sample->gy, sample->gz,
         sample->mx, sample->my, sample->mz,
+        sample->roll, sample->pitch, sample->yaw,
         sample->pressure, sample->temperature);
 
     if (written < 0) {
