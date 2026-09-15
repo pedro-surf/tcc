@@ -185,6 +185,16 @@ export function LiveBuoyPage() {
               : '—'}
           </strong>
         </div>
+        <div>
+          <span>GPS</span>
+          <strong>
+            {latest?.fix
+              ? `${latest.lat?.toFixed(5)} ${latest.lon?.toFixed(5)} · ${latest.sat ?? 0} sat`
+              : latest
+                ? 'no fix'
+                : '—'}
+          </strong>
+        </div>
       </aside>
     </div>
   )

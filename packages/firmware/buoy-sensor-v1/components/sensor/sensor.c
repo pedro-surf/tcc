@@ -2,6 +2,7 @@
 #include "mpu9250.h"
 #include "bmp280.h"
 #include "fusion.h"
+#include "gps.h"
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -48,4 +49,12 @@ void sensor_read_all(sensor_data_t *data)
     data->roll = ori.roll;
     data->pitch = ori.pitch;
     data->yaw = ori.yaw;
+
+    gps_fix_t g = {0};
+    gps_get(&g);
+    data->lat = g.lat;
+    data->lon = g.lon;
+    data->alt = g.alt;
+    data->fix = g.fix;
+    data->sat = g.sat;
 }

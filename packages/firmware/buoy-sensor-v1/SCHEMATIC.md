@@ -3,10 +3,12 @@
 **MCU:** ESP32 DevKit (3.3 V logic)  
 **Power:** **18650 battery shield** (illustrative field power) + **1× 18650** Li-ion cell  
 **Sensor module:** **GY-91** (MPU9250 + BMP280 on one board)  
+**GNSS:** **NEO-6M** on UART2 (optional; `ENABLE_GPS` in `main/config.h`)  
 **Storage:** microSD over SPI  
 **Firmware:** `packages/firmware/buoy-sensor-v1`
 
-Visual overview: [`docs/buoy-sensor-v1-schematic.png`](docs/buoy-sensor-v1-schematic.png)
+Visual overview (v2, with GPS): [`docs/buoy-sensor-v1-schematic-v2.png`](docs/buoy-sensor-v1-schematic-v2.png)  
+v1 (no GPS): [`docs/buoy-sensor-v1-schematic.png`](docs/buoy-sensor-v1-schematic.png)
 
 ---
 
@@ -17,7 +19,8 @@ The **18650 battery shield** is included to show how the buoy is powered in the 
 1. Insert **one 18650** cell into the shield (observe `+` / `-` marking)
 2. Shield boosts/regulates to **5 V out**
 3. Feed that into ESP32 **VIN** (+ common **GND**)
-4. ESP32 onboard regulator makes **3.3 V** for GY-91 + microSD
+4. ESP32 onboard regulator makes **3.3 V** for GY-91 + microSD  
+5. NEO-6M **VCC** takes **5 V** from the same shield 5 V net (onboard LDO). Do not hang it off ESP32 **3V3**.
 
 Charge the shield through its **USB** port when needed. This is an illustration of portable power — exact shield revision (V3/V8/etc.) may vary; always use the **5 V output → ESP32 VIN** pattern.
 
@@ -55,10 +58,11 @@ Firmware still talks to two I2C addresses on that shared bus:
               ▼
        ┌──────────────┐
        │ ESP32 DevKit │──── 3V3 / GND / SDA21 / SCL22 ──► GY-91
-       │ (reg → 3.3V) │
+       │ (reg → 3.3V) │──── UART2 GPIO16 RX / GPIO17 TX ──► NEO-6M (TX/RX crossed)
        └──────┬───────┘
               │
-              └──── SPI 23/19/18/5 + 3V3/GND ──► microSD
+              ├──── SPI 23/19/18/5 + 3V3/GND ──► microSD
+              └──── 5V / GND ──► NEO-6M VCC
 ```
 
 ```mermaid
@@ -67,6 +71,7 @@ flowchart LR
   ESP["ESP32 DevKit"]
   GY91["GY-91 module<br/>MPU9250 0x68 + BMP280 0x76"]
   SD["microSD module"]
+  GPS["NEO-6M GPS"]
 
   BAT -->|"5V OUT → VIN"| ESP
   BAT -->|"GND"| ESP
@@ -80,6 +85,11 @@ flowchart LR
   ESP -->|"GPIO19 MISO"| SD
   ESP -->|"GPIO18 SCLK"| SD
   ESP -->|"GPIO5 CS"| SD
+
+  BAT -->|"5V OUT → VCC"| GPS
+  ESP -->|"GND"| GPS
+  ESP -->|"GPIO16 RX2 ← TX"| GPS
+  ESP -->|"GPIO17 TX2 → RX"| GPS
 ```
 
 ---
@@ -89,10 +99,12 @@ flowchart LR
 | ESP32 pin | Signal | Goes to | Notes |
 |-----------|--------|---------|-------|
 | **VIN** | 5 V in | Battery shield **5V OUT** | Powers the DevKit; do not also inject 5 V on 3V3 |
-| **GND** | Ground | Battery shield GND, GY-91 GND, SD GND | Common ground |
+| **GND** | Ground | Battery shield GND, GY-91 GND, SD GND, NEO-6M GND | Common ground |
 | **3V3** | 3.3 V out | GY-91 `VIN`/`3V3`, SD VCC* | From ESP32 regulator |
 | **GPIO21** | I2C SDA | GY-91 **SDA** | Shared by MPU + BMP on module |
 | **GPIO22** | I2C SCL | GY-91 **SCL** | Shared by MPU + BMP on module |
+| **GPIO16** | UART2 RX | NEO-6M **TX** | NMEA in. WROVER PSRAM: use GPIO4 |
+| **GPIO17** | UART2 TX | NEO-6M **RX** | Config out (optional). WROVER: GPIO15 |
 | **GPIO23** | SPI MOSI | SD MOSI / DI | |
 | **GPIO19** | SPI MISO | SD MISO / DO | |
 | **GPIO18** | SPI SCLK | SD SCK / CLK | |
@@ -153,17 +165,33 @@ Card format: **FAT32**. Firmware writes:
 
 `/sdcard/sessions/session_<boot_ms>.csv`
 
+### 4) NEO-6M GPS — UART2
+
+Bring-up notes and NMEA snippets: [`docs/neo-6m.md`](docs/neo-6m.md). Pins also in `main/config.h` (`GPS_UART_RX_PIN` / `GPS_UART_TX_PIN`). Set `ENABLE_GPS=0` to skip UART and the gps task.
+
+| NEO-6M pin | Connect to | Notes |
+|------------|------------|-------|
+| VCC | Battery shield **5V OUT** (same net as ESP32 VIN) | Board LDO; 3.3 V on VCC often starves the chip |
+| GND | ESP32 **GND** | Required |
+| TX | ESP32 **GPIO16** (UART2 RX) | Module → MCU |
+| RX | ESP32 **GPIO17** (UART2 TX) | MCU → module (optional) |
+| PPS | leave open | |
+
+Antenna patch faces **sky**. First lock needs outdoor sky view (30 s – a few minutes cold). Firmware parses `$GPGGA` / `$GNGGA` at 9600 8N1 and caches the last fix for the 10 Hz IMU loop.
+
 ---
 
 ## Net list (for wiring / PCB)
 
 | Net | Members |
 |-----|---------|
-| `+5V_BAT` | Battery shield 5V OUT → ESP32 VIN |
-| `GND` | Battery shield GND, ESP32 GND, GY-91 GND, SD GND |
+| `+5V_BAT` | Battery shield 5V OUT → ESP32 VIN, NEO-6M VCC |
+| `GND` | Battery shield GND, ESP32 GND, GY-91 GND, SD GND, NEO-6M GND |
 | `+3V3` | ESP32 3V3 → GY-91 VIN, SD VCC* |
 | `I2C_SDA` | ESP32 GPIO21, GY-91 SDA |
 | `I2C_SCL` | ESP32 GPIO22, GY-91 SCL |
+| `UART2_RX` | ESP32 GPIO16, NEO-6M TX |
+| `UART2_TX` | ESP32 GPIO17, NEO-6M RX |
 | `SPI_MOSI` | ESP32 GPIO23, SD MOSI |
 | `SPI_MISO` | ESP32 GPIO19, SD MISO |
 | `SPI_SCLK` | ESP32 GPIO18, SD SCK |
@@ -177,11 +205,12 @@ Card format: **FAT32**. Firmware writes:
 
 1. Insert 18650 with correct polarity; turn shield **ON**  
 2. Battery shield **5V → ESP32 VIN**, **GND → GND**  
-3. Common GND across ESP32 + GY-91 + SD  
+3. Common GND across ESP32 + GY-91 + SD + NEO-6M  
 4. GY-91 wired with only **VIN, GND, SDA, SCL** for I2C  
 5. Leave GY-91 `NCS` / `CSB` / `SDO` unconnected  
-6. microSD on SPI pins 23 / 19 / 18 / 5, formatted FAT32  
-7. Flash firmware and confirm serial: MPU WHO_AM_I, AK8963 WIA, BMP ID, `SD ready`, `Session CSV opened`
+6. NEO-6M **5 V / GND**, **TX→GPIO16**, **RX→GPIO17** (crossed)  
+7. microSD on SPI pins 23 / 19 / 18 / 5, formatted FAT32  
+8. Flash firmware and confirm serial: MPU WHO_AM_I, AK8963 WIA, BMP ID, `NMEA GGA ok` / `fix=1` outdoors, `SD ready`, `Session CSV opened`
 
 ---
 

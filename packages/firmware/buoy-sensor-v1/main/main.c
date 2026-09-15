@@ -10,6 +10,7 @@
 #include "sensor.h"
 #include "storage.h"
 #include "wifi.h"
+#include "gps.h"
 
 static const char *TAG = "main";
 
@@ -52,7 +53,8 @@ static void sensor_task(void *arg)
         if ((sample_n % UART_LOG_EVERY_N) == 0) {
             ESP_LOGI(TAG,
                      "t=%lld us | accel=%.2f %.2f %.2f g | gyro=%.1f %.1f %.1f dps | "
-                     "mag=%.1f %.1f %.1f uT | rpy=%.1f %.1f %.1f deg | P=%.0f Pa T=%.1f C%s%s",
+                     "mag=%.1f %.1f %.1f uT | rpy=%.1f %.1f %.1f deg | P=%.0f Pa T=%.1f C"
+                     " | lat=%.5f lon=%.5f fix=%d sat=%d%s%s",
                      (long long)data.timestamp,
                      data.ax, data.ay, data.az,
                      data.gx, data.gy, data.gz,
@@ -61,6 +63,7 @@ static void sensor_task(void *arg)
                      data.pitch * (180.0f / 3.14159265f),
                      data.yaw * (180.0f / 3.14159265f),
                      data.pressure, data.temperature,
+                     data.lat, data.lon, data.fix, data.sat,
                      logging ? " | sd=on" : " | sd=off",
                      mqtt_is_connected() ? " | mqtt=on" : " | mqtt=off");
         }
@@ -72,14 +75,22 @@ static void sensor_task(void *arg)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "buoy-sensor-v1: SD=%d MQTT=%d MAG=%d FUSION=%d  mqtt_every=%d",
-             ENABLE_SD, ENABLE_MQTT, ENABLE_MAG, ENABLE_FUSION, MQTT_PUBLISH_EVERY_N);
+    ESP_LOGI(TAG, "buoy-sensor-v1: SD=%d MQTT=%d MAG=%d FUSION=%d GPS=%d  mqtt_every=%d",
+             ENABLE_SD, ENABLE_MQTT, ENABLE_MAG, ENABLE_FUSION, ENABLE_GPS, MQTT_PUBLISH_EVERY_N);
 
     i2c_master_init();
 
     if (!sensor_init()) {
         ESP_LOGW(TAG, "One or more sensors failed init — continuing to read anyway");
     }
+
+#if ENABLE_GPS
+    if (!gps_init()) {
+        ESP_LOGW(TAG, "GPS init failed — lat/lon will stay 0");
+    }
+#else
+    ESP_LOGI(TAG, "GPS disabled (ENABLE_GPS=0)");
+#endif
 
 #if ENABLE_SD
     esp_err_t sd_err = storage_init();

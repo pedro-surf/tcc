@@ -1,4 +1,5 @@
 #include "wifi.h"
+#include "config.h"
 
 #include "esp_event.h"
 #include "esp_log.h"
@@ -171,13 +172,31 @@ bool mqtt_is_connected(void)
 
 esp_err_t mqtt_publish_sample(const sensor_data_t *sample)
 {
-    char payload[448];
+    char payload[512];
 
     if (!s_mqtt || !s_mqtt_up || !sample) {
         return ESP_ERR_INVALID_STATE;
     }
 
     int64_t t_ms = sample->timestamp / 1000;
+#if ENABLE_GPS
+    int n = snprintf(
+        payload, sizeof(payload),
+        "{\"device\":\"%s\",\"t_ms\":%lld,"
+        "\"ax\":%.5f,\"ay\":%.5f,\"az\":%.5f,"
+        "\"gx\":%.3f,\"gy\":%.3f,\"gz\":%.3f,"
+        "\"mx\":%.3f,\"my\":%.3f,\"mz\":%.3f,"
+        "\"roll\":%.5f,\"pitch\":%.5f,\"yaw\":%.5f,"
+        "\"p\":%.2f,\"tc\":%.2f,"
+        "\"lat\":%.6f,\"lon\":%.6f,\"fix\":%d,\"alt\":%.1f,\"sat\":%d}",
+        s_client_id, (long long)t_ms,
+        sample->ax, sample->ay, sample->az,
+        sample->gx, sample->gy, sample->gz,
+        sample->mx, sample->my, sample->mz,
+        sample->roll, sample->pitch, sample->yaw,
+        sample->pressure, sample->temperature,
+        sample->lat, sample->lon, sample->fix, sample->alt, sample->sat);
+#else
     int n = snprintf(
         payload, sizeof(payload),
         "{\"device\":\"%s\",\"t_ms\":%lld,"
@@ -192,6 +211,7 @@ esp_err_t mqtt_publish_sample(const sensor_data_t *sample)
         sample->mx, sample->my, sample->mz,
         sample->roll, sample->pitch, sample->yaw,
         sample->pressure, sample->temperature);
+#endif
 
     if (n < 0 || n >= (int)sizeof(payload)) {
         return ESP_ERR_NO_MEM;

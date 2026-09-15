@@ -8,6 +8,12 @@
 #define ENABLE_MQTT    1
 #define ENABLE_MAG     1  /* AK8963 on GY-91; extra I2C every sample */
 #define ENABLE_FUSION  1  /* complementary roll/pitch (yaw = gyro integrate) */
+#define ENABLE_GPS     1  /* NEO-6M on UART2; set 0 to skip UART + gps task */
+
+/* UART2 — module TX → RX pin, module RX → TX pin. WROVER PSRAM: use 4 / 15. */
+#define GPS_UART_RX_PIN  16
+#define GPS_UART_TX_PIN  17
+#define GPS_UART_BAUD    9600
 
 /* 10 Hz sampling. IMU loop always runs. */
 #define SAMPLE_PERIOD_MS  100
