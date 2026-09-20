@@ -4,6 +4,13 @@ import { resolveMonthRange } from './monthRange'
 import { getForecastProvider } from './providers'
 import { encodeConditionVector } from './conditionVector'
 
+export type IngestSpot = {
+  id: string
+  lat: number
+  lng: number
+  locationId: string
+}
+
 export type IngestSpotMonthResult = {
   spotId: string
   year: number
@@ -20,6 +27,22 @@ function timestampKey(value: Date): string {
   return value.toISOString()
 }
 
+async function resolveIngestSpot(
+  spotId: string,
+  preloaded?: IngestSpot,
+): Promise<IngestSpot> {
+  if (preloaded) {
+    if (preloaded.id !== spotId) throw new Error('Spot id mismatch')
+    return preloaded
+  }
+  const spot = await prisma.spot.findUnique({
+    where: { id: spotId },
+    select: { id: true, lat: true, lng: true, locationId: true },
+  })
+  if (!spot) throw new Error('Spot not found')
+  return spot
+}
+
 export async function ingestSpotMonth(options: {
   spotId: string
   year: number
@@ -27,15 +50,12 @@ export async function ingestSpotMonth(options: {
   requestedById: string
   force?: boolean
   allowUpcoming?: boolean
+  spot?: IngestSpot
 }): Promise<IngestSpotMonthResult> {
   const range = resolveMonthRange(options.year, options.month, new Date(), {
     allowUpcoming: options.allowUpcoming,
   })
-  const spot = await prisma.spot.findUnique({
-    where: { id: options.spotId },
-    select: { id: true, lat: true, lng: true, locationId: true },
-  })
-  if (!spot) throw new Error('Spot not found')
+  const spot = await resolveIngestSpot(options.spotId, options.spot)
 
   const cached = options.force
     ? null

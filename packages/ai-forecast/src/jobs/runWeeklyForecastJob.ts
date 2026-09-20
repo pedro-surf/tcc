@@ -1,3 +1,4 @@
+import type { Spot } from '@prisma/client'
 import { prisma } from '../db'
 import { generateAndStoreWeeklySpotDescription } from '../ai/weeklySpotDescription'
 import { ingestSpotMonth } from '../forecast/ingestSpotMonth'
@@ -18,66 +19,73 @@ export type WeeklyForecastJobResult = {
   results: WeeklyJobSpotResult[]
 }
 
+async function runWeeklyForecastForSpot(
+  spot: Spot,
+  months: Array<{ year: number; month: number }>,
+  ingestUserId: string | undefined,
+): Promise<WeeklyJobSpotResult> {
+  const requestedById = spot.createdById || ingestUserId
+  if (!requestedById) {
+    return {
+      spotId: spot.id,
+      name: spot.name,
+      ok: false,
+      error:
+        'No user to attribute forecast rows. Set FORECAST_INGEST_USER_ID or createdById on the spot.',
+    }
+  }
+
+  try {
+    const forecast: WeeklyJobSpotResult['forecast'] = []
+    for (const { year, month } of months) {
+      const ingested = await ingestSpotMonth({
+        spotId: spot.id,
+        year,
+        month,
+        requestedById,
+        force: true,
+        allowUpcoming: true,
+        spot,
+      })
+      forecast.push({
+        year: ingested.year,
+        month: ingested.month,
+        fromCache: ingested.fromCache,
+      })
+    }
+
+    await generateAndStoreWeeklySpotDescription(spot.id, {
+      skipCooldown: true,
+      spot,
+    })
+
+    return {
+      spotId: spot.id,
+      name: spot.name,
+      ok: true,
+      forecast,
+    }
+  } catch (error) {
+    return {
+      spotId: spot.id,
+      name: spot.name,
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
 export async function runWeeklyForecastJob(): Promise<WeeklyForecastJobResult> {
   const ingestUserId = process.env.FORECAST_INGEST_USER_ID
   const months = monthsForNextWeek()
   const spots = await prisma.spot.findMany({
     where: { secret: { not: true } },
-    select: { id: true, name: true, createdById: true },
     orderBy: { createdAt: 'asc' },
   })
 
   const results: WeeklyJobSpotResult[] = []
-
   for (const spot of spots) {
-    const requestedById = spot.createdById || ingestUserId
-    if (!requestedById) {
-      results.push({
-        spotId: spot.id,
-        name: spot.name,
-        ok: false,
-        error:
-          'No user to attribute forecast rows. Set FORECAST_INGEST_USER_ID or createdById on the spot.',
-      })
-      continue
-    }
-
-    try {
-      const forecast: WeeklyJobSpotResult['forecast'] = []
-      for (const { year, month } of months) {
-        const ingested = await ingestSpotMonth({
-          spotId: spot.id,
-          year,
-          month,
-          requestedById,
-          force: true,
-          allowUpcoming: true,
-        })
-        forecast.push({
-          year: ingested.year,
-          month: ingested.month,
-          fromCache: ingested.fromCache,
-        })
-      }
-
-      await generateAndStoreWeeklySpotDescription(spot.id, {
-        skipCooldown: true,
-      })
-
-      results.push({
-        spotId: spot.id,
-        name: spot.name,
-        ok: true,
-        forecast,
-      })
-    } catch (error) {
-      results.push({
-        spotId: spot.id,
-        name: spot.name,
-        ok: false,
-        error: error instanceof Error ? error.message : String(error),
-      })
-    }
+    results.push(await runWeeklyForecastForSpot(spot, months, ingestUserId))
   }
 
   return {

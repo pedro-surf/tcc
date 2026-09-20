@@ -144,9 +144,10 @@ export function canGenerateWeeklyDescription(
 
 export async function generateAndStoreWeeklySpotDescription(
   spotId: string,
-  options?: { skipCooldown?: boolean },
+  options?: { skipCooldown?: boolean; spot?: Spot },
 ) {
-  const spot = await prisma.spot.findUnique({ where: { id: spotId } })
+  const spot =
+    options?.spot ?? (await prisma.spot.findUnique({ where: { id: spotId } }))
   if (!spot) {
     throw new Error('Spot not found')
   }
