@@ -3,6 +3,8 @@ import type { Session } from './types'
 import SensorCharts from './SensorCharts'
 import { Board3D } from './Board'
 import { flipImuSample } from './features/live/imuMount'
+import { MqttLogModal } from './features/live/MqttLogModal'
+import { useBuoyMqttLogs } from './features/live/useBuoyMqttLogs'
 import { SessionTrackMap } from './components/map/SessionTrackMap'
 import {
   REPLAY_SPEEDS,
@@ -30,6 +32,8 @@ export default function SessionDetail({
   const [speed, setSpeed] = useState(1)
   const [view, setView] = useState<ReplayView>('analysis')
   const [upsideDown, setUpsideDown] = useState(true)
+  const [logOpen, setLogOpen] = useState(false)
+  const logs = useBuoyMqttLogs(!hideReplay)
 
   const playerRef = useRef(0)
   useEffect(() => {
@@ -62,18 +66,22 @@ export default function SessionDetail({
 
   if (!hideReplay && view === 'simulation') {
     return (
-      <SessionSimulation
-        session={session}
-        cursor={cursor}
-        playing={playing}
-        speed={speed}
-        onCursor={setCursor}
-        onPlaying={setPlaying}
-        onSpeed={setSpeed}
-        onClose={() => setView('analysis')}
-        upsideDown={upsideDown}
-        onUpsideDown={setUpsideDown}
-      />
+      <>
+        <SessionSimulation
+          session={session}
+          cursor={cursor}
+          playing={playing}
+          speed={speed}
+          onCursor={setCursor}
+          onPlaying={setPlaying}
+          onSpeed={setSpeed}
+          onClose={() => setView('analysis')}
+          upsideDown={upsideDown}
+          onUpsideDown={setUpsideDown}
+          onOpenLog={() => setLogOpen(true)}
+        />
+        <MqttLogModal open={logOpen} lines={logs} onClose={() => setLogOpen(false)} />
+      </>
     )
   }
 
@@ -139,6 +147,9 @@ export default function SessionDetail({
           >
             IMU flip {upsideDown ? 'on' : 'off'}
           </button>
+          <button type="button" onClick={() => setLogOpen(true)}>
+            MQTT log
+          </button>
         </div>
       )}
 
@@ -190,9 +201,11 @@ export default function SessionDetail({
             ) : (
               <p className="app-meta">No maneuvers in this session.</p>
             )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      <MqttLogModal open={logOpen} lines={logs} onClose={() => setLogOpen(false)} />
+    </div>
     </div>
   )
 }

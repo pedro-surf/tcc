@@ -28,18 +28,44 @@ export type BuoySample = {
 const MQTT_URL = process.env.MQTT_BROKER_URL ?? 'mqtt://broker.emqx.io:1883'
 const MQTT_TOPIC = process.env.MQTT_TOPIC ?? 'buoy-sensor-v1/+/sample'
 const BUFFER_MAX = 600
+const LOG_MAX = 500
+
+export type BuoyLogLine = {
+  t: number
+  level: 'log' | 'warn' | 'error'
+  message: string
+}
 
 const bus = new EventEmitter()
 bus.setMaxListeners(50)
 
 const recent: BuoySample[] = []
+const logs: BuoyLogLine[] = []
 let connected = false
 let linkUp = false
 let lastSampleAt: number | null = null
 let lastDevice: string | null = null
 
-function buoyLog(level: 'log' | 'warn' | 'error', message: string) {
-  console[level](`[buoy-mqtt] ${new Date().toISOString()} ${message}`)
+function buoyLog(level: 'log' | 'warn' | 'error', message: string, echo = true) {
+  const line: BuoyLogLine = { t: Date.now(), level, message }
+  logs.push(line)
+  if (logs.length > LOG_MAX) logs.splice(0, logs.length - LOG_MAX)
+  bus.emit('log', line)
+  if (echo) console[level](`[buoy-mqtt] ${new Date(line.t).toISOString()} ${message}`)
+}
+
+function sampleLogMessage(topic: string, sample: BuoySample) {
+  const gps =
+    sample.fix
+      ? ` fix=${sample.fix} lat=${sample.lat?.toFixed(5)} lon=${sample.lon?.toFixed(5)} sat=${sample.sat ?? 0}`
+      : ' fix=0'
+  return (
+    `${topic} device=${sample.device} t_ms=${sample.timestamp}` +
+    ` ax=${sample.ax.toFixed(3)} ay=${sample.ay.toFixed(3)} az=${sample.az.toFixed(3)}` +
+    ` gx=${sample.gx.toFixed(2)} gy=${sample.gy.toFixed(2)} gz=${sample.gz.toFixed(2)}` +
+    ` roll=${(sample.roll ?? 0).toFixed(3)} pitch=${(sample.pitch ?? 0).toFixed(3)} yaw=${(sample.yaw ?? 0).toFixed(3)}` +
+    gps
+  )
 }
 
 function noteLinkLost(reason: string) {
@@ -175,6 +201,15 @@ export function isBuoyMqttConnected(): boolean {
   return connected
 }
 
+export function getRecentLogs(): BuoyLogLine[] {
+  return logs.slice()
+}
+
+export function onBuoyLog(handler: (line: BuoyLogLine) => void): () => void {
+  bus.on('log', handler)
+  return () => bus.off('log', handler)
+}
+
 export function onBuoySample(handler: (sample: BuoySample) => void): () => void {
   bus.on('sample', handler)
   return () => bus.off('sample', handler)
@@ -227,6 +262,7 @@ export function startBuoyMqtt() {
     if (sample) {
       lastSampleAt = Date.now()
       lastDevice = sample.device
+      buoyLog('log', sampleLogMessage(topic, sample), false)
       pushSample(sample)
     }
   })

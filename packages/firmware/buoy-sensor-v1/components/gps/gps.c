@@ -7,6 +7,7 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -21,6 +22,11 @@ static gps_fix_t s_fix;
 static SemaphoreHandle_t s_lock;
 
 #if ENABLE_GPS
+
+#if GPS_HOLD_ENABLE
+static gps_fix_t s_published;
+static bool s_have_published;
+#endif
 
 #define GPS_UART_NUM     UART_NUM_2
 #define GPS_RX_BUF_SIZE  1024
@@ -105,9 +111,67 @@ static bool parse_gga(const char *line, gps_fix_t *out)
     out->lon = nmea_to_deg(f[4], hemi_ew);
     out->fix = f[6] ? atoi(f[6]) : 0;
     out->sat = f[7] ? atoi(f[7]) : 0;
+    out->hdop = (f[8] && f[8][0]) ? (float)atof(f[8]) : 99.0f;
     out->alt = f[9] ? (float)atof(f[9]) : 0.0f;
-    out->valid = (out->fix > 0);
+    out->valid = (out->fix > 0 && out->lat != 0.0f && out->lon != 0.0f);
     return true;
+}
+
+#if GPS_HOLD_ENABLE
+static float meters_between(float lat1, float lon1, float lat2, float lon2)
+{
+    const float meters_per_deg = 111320.0f;
+    float mid = ((lat1 + lat2) * 0.5f) * (3.14159265f / 180.0f);
+    float dlat = (lat2 - lat1) * meters_per_deg;
+    float dlon = (lon2 - lon1) * meters_per_deg * cosf(mid);
+    return sqrtf(dlat * dlat + dlon * dlon);
+}
+#endif
+
+/* Publish a new point only when it clears the current accuracy bubble. */
+static gps_fix_t gate_fix(const gps_fix_t *raw)
+{
+#if !GPS_HOLD_ENABLE
+    return *raw;
+#else
+    if (!raw->valid) {
+        gps_fix_t lost = s_have_published ? s_published : (gps_fix_t){0};
+        lost.fix = 0;
+        lost.valid = false;
+        lost.sat = raw->sat;
+        lost.hdop = raw->hdop;
+        return lost;
+    }
+
+    float gate = raw->hdop * GPS_HDOP_METERS;
+    if (gate < GPS_MIN_ACCURACY_M) {
+        gate = GPS_MIN_ACCURACY_M;
+    }
+
+    if (!s_have_published) {
+        s_published = *raw;
+        s_have_published = true;
+        ESP_LOGI(TAG, "lock lat=%.6f lon=%.6f sat=%d hdop=%.1f gate=%.0fm",
+                 raw->lat, raw->lon, raw->sat, raw->hdop, gate);
+        return *raw;
+    }
+
+    float moved = meters_between(s_published.lat, s_published.lon, raw->lat, raw->lon);
+    if (moved < gate) {
+        gps_fix_t held = s_published;
+        held.sat = raw->sat;
+        held.fix = raw->fix;
+        held.alt = raw->alt;
+        held.hdop = raw->hdop;
+        held.valid = true;
+        return held;
+    }
+
+    ESP_LOGI(TAG, "move %.0fm (gate %.0fm hdop %.1f sat %d)",
+             moved, gate, raw->hdop, raw->sat);
+    s_published = *raw;
+    return *raw;
+#endif
 }
 
 static int read_line(char *out, size_t out_len, TickType_t timeout)
@@ -154,13 +218,15 @@ static void gps_task(void *arg)
             saw_nmea = true;
         }
         if (parsed.fix != last_fix) {
-            ESP_LOGI(TAG, "fix=%d sat=%d lat=%.6f lon=%.6f alt=%.1f",
-                     parsed.fix, parsed.sat, parsed.lat, parsed.lon, parsed.alt);
+            ESP_LOGI(TAG, "fix=%d sat=%d hdop=%.1f lat=%.6f lon=%.6f alt=%.1f",
+                     parsed.fix, parsed.sat, parsed.hdop,
+                     parsed.lat, parsed.lon, parsed.alt);
             last_fix = parsed.fix;
         }
 
+        gps_fix_t published = gate_fix(&parsed);
         xSemaphoreTake(s_lock, portMAX_DELAY);
-        s_fix = parsed;
+        s_fix = published;
         xSemaphoreGive(s_lock);
     }
 }

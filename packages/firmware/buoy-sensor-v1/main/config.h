@@ -15,6 +15,16 @@
 #define GPS_UART_TX_PIN  17
 #define GPS_UART_BAUD    9600
 
+/*
+ * NEO-6M open-sky error is about 2.5 m. Indoors HDOP climbs and the fix
+ * wanders tens of metres while you stand still. When GPS_HOLD_ENABLE is 1,
+ * keep the last point until the jump exceeds
+ * max(GPS_MIN_ACCURACY_M, hdop * GPS_HDOP_METERS). Set 0 to publish every fix.
+ */
+#define GPS_HOLD_ENABLE     1
+#define GPS_HDOP_METERS     3.0f
+#define GPS_MIN_ACCURACY_M  3.0f
+
 /* 10 Hz sampling. IMU loop always runs. */
 #define SAMPLE_PERIOD_MS  100
 

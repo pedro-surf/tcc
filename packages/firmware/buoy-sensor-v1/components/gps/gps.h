@@ -11,6 +11,7 @@ typedef struct {
     float lat;
     float lon;
     float alt; /* metres */
+    float hdop;
     int   fix; /* 0=none, 1=GPS, 2=DGPS */
     int   sat;
     bool  valid;

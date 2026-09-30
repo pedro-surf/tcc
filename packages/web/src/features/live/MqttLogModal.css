@@ -1,0 +1,146 @@
+.mqtt-log {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 6, 23, 0.62);
+}
+
+.mqtt-log__panel {
+  display: flex;
+  flex-direction: column;
+  width: min(980px, 100%);
+  height: min(72vh, 680px);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f1419;
+  border: 1px solid #334155;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  color: #e2e8f0;
+}
+
+.mqtt-log__bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  background: #161e27;
+  border-bottom: 1px solid #273443;
+}
+
+.mqtt-log__group {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.mqtt-log__bar h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #f8fafc;
+}
+
+.mqtt-log__filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.mqtt-log__filter input {
+  width: min(280px, 36vw);
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f1419;
+  color: #e2e8f0;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+}
+
+.mqtt-log__close {
+  border-radius: 999px;
+  border: 1px solid #475569;
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.mqtt-log__stream {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mqtt-log__row {
+  display: grid;
+  grid-template-columns: 188px 52px minmax(0, 1fr);
+  gap: 10px;
+  padding: 2px 14px;
+}
+
+.mqtt-log__row:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.mqtt-log__row time {
+  color: #7dd3fc;
+}
+
+.mqtt-log__level {
+  font-weight: 700;
+  color: #86efac;
+}
+
+.mqtt-log__row--warn .mqtt-log__level {
+  color: #fbbf24;
+}
+
+.mqtt-log__row--error .mqtt-log__level {
+  color: #f87171;
+}
+
+.mqtt-log__msg {
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mqtt-log__empty {
+  margin: 24px 14px;
+  color: #94a3b8;
+}
+
+@media (max-width: 720px) {
+  .mqtt-log {
+    padding: 8px;
+  }
+
+  .mqtt-log__bar {
+    flex-wrap: wrap;
+  }
+
+  .mqtt-log__filter {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .mqtt-log__filter input {
+    flex: 1;
+    width: auto;
+  }
+
+  .mqtt-log__row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  }
+}

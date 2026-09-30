@@ -17,6 +17,7 @@ type Props = {
   onClose: () => void
   upsideDown: boolean
   onUpsideDown: (enabled: boolean) => void
+  onOpenLog: () => void
 }
 
 export function SessionSimulation({
@@ -30,6 +31,7 @@ export function SessionSimulation({
   onClose,
   upsideDown,
   onUpsideDown,
+  onOpenLog,
 }: Props) {
   const gpsRide = useMemo(
     () => sessionToTrajectory(session, upsideDown),
@@ -80,6 +82,9 @@ export function SessionSimulation({
           onClick={() => onUpsideDown(!upsideDown)}
         >
           IMU flip {upsideDown ? 'on' : 'off'}
+        </button>
+        <button type="button" className="simulation-page__back" onClick={onOpenLog}>
+          MQTT log
         </button>
       </header>
 

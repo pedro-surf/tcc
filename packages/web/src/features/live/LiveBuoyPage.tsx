@@ -7,6 +7,7 @@ import {
 } from '../simulation/mockTrajectory'
 import { SimulationViewport } from '../simulation/SimulationViewport'
 import { LiveMiniMap } from './LiveMiniMap'
+import { MqttLogModal, type MqttLogLine } from './MqttLogModal'
 import {
   createKalmanAttitude,
   stepKalman,
@@ -29,6 +30,7 @@ type LiveSample = Sample & {
 type Snapshot = {
   mqtt: boolean
   samples: LiveSample[]
+  logs?: MqttLogLine[]
 }
 
 const MAX_POINTS = 300
@@ -85,6 +87,8 @@ export function LiveBuoyPage() {
   const [error, setError] = useState<string | null>(null)
   const [useKalman, setUseKalman] = useState(true)
   const [upsideDown, setUpsideDown] = useState(true)
+  const [logs, setLogs] = useState<MqttLogLine[]>([])
+  const [logOpen, setLogOpen] = useState(false)
   const filter = useRef({ roll: 0, pitch: 0, yaw: 0, tSec: 0, primed: false })
   const runtime = useRef<AttitudeRuntime>({
     attitude: createKalmanAttitude(),
@@ -106,6 +110,7 @@ export function LiveBuoyPage() {
       const body = JSON.parse((event as MessageEvent).data) as Snapshot
       setMqtt(body.mqtt)
       setSamples(body.samples.slice(-MAX_POINTS))
+      setLogs(body.logs ?? [])
       setStreamOk(true)
       setError(null)
     })
@@ -114,6 +119,11 @@ export function LiveBuoyPage() {
       const sample = JSON.parse((event as MessageEvent).data) as LiveSample
       setSamples((prev) => [...prev, sample].slice(-MAX_POINTS))
       setStreamOk(true)
+    })
+
+    source.addEventListener('log', (event) => {
+      const line = JSON.parse((event as MessageEvent).data) as MqttLogLine
+      setLogs((prev) => [...prev, line].slice(-500))
     })
 
     source.onerror = () => {
@@ -279,6 +289,14 @@ export function LiveBuoyPage() {
         >
           IMU flip {upsideDown ? 'on' : 'off'}
         </button>
+        <button
+          type="button"
+          className="simulation-page__back"
+          aria-expanded={logOpen}
+          onClick={() => setLogOpen(true)}
+        >
+          MQTT log
+        </button>
       </header>
 
       <aside className="simulation-page__hud">
@@ -343,6 +361,7 @@ export function LiveBuoyPage() {
       </aside>
 
       <LiveMiniMap samples={samples} />
+      <MqttLogModal open={logOpen} lines={logs} onClose={() => setLogOpen(false)} />
     </div>
   )
 }

@@ -1,7 +1,9 @@
 import { Router } from 'express'
 import {
+  getRecentLogs,
   getRecentSamples,
   isBuoyMqttConnected,
+  onBuoyLog,
   onBuoySample,
 } from '../mqtt/buoyLive'
 
@@ -30,14 +32,17 @@ buoyLiveRouter.get('/stream', (req, res) => {
   write('snapshot', {
     mqtt: isBuoyMqttConnected(),
     samples: getRecentSamples(),
+    logs: getRecentLogs(),
   })
 
-  const off = onBuoySample((sample) => write('sample', sample))
+  const offSample = onBuoySample((sample) => write('sample', sample))
+  const offLog = onBuoyLog((line) => write('log', line))
   const ping = setInterval(() => write('ping', { t: Date.now() }), 15000)
 
   req.on('close', () => {
     clearInterval(ping)
-    off()
+    offSample()
+    offLog()
     res.end()
   })
 })
