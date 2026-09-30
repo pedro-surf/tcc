@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Session } from './types'
 import SensorCharts from './SensorCharts'
 import { Board3D } from './Board'
+import { flipImuSample } from './features/live/imuMount'
 import { SessionTrackMap } from './components/map/SessionTrackMap'
 import {
   REPLAY_SPEEDS,
@@ -28,6 +29,7 @@ export default function SessionDetail({
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
   const [view, setView] = useState<ReplayView>('analysis')
+  const [upsideDown, setUpsideDown] = useState(true)
 
   const playerRef = useRef(0)
   useEffect(() => {
@@ -69,6 +71,8 @@ export default function SessionDetail({
         onPlaying={setPlaying}
         onSpeed={setSpeed}
         onClose={() => setView('analysis')}
+        upsideDown={upsideDown}
+        onUpsideDown={setUpsideDown}
       />
     )
   }
@@ -127,6 +131,14 @@ export default function SessionDetail({
             aria-label="Timeline"
             onChange={(event) => setCursor(Number(event.target.value))}
           />
+          <button
+            type="button"
+            className={upsideDown ? 'is-active' : ''}
+            aria-pressed={upsideDown}
+            onClick={() => setUpsideDown((enabled) => !enabled)}
+          >
+            IMU flip {upsideDown ? 'on' : 'off'}
+          </button>
         </div>
       )}
 
@@ -141,7 +153,9 @@ export default function SessionDetail({
           <div className="session-replay__board">
             <h3>Replay</h3>
             <div className="session-replay__board-canvas">
-              <Board3D sample={currentSample} />
+              <Board3D
+                sample={upsideDown ? flipImuSample(currentSample) : currentSample}
+              />
             </div>
             <div className="session-replay__readout">
               <span>acc {magnitudeAcc.toFixed(2)}</span>

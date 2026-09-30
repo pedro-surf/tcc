@@ -37,6 +37,12 @@
   gap: 10px;
 }
 
+.session-replay__transport button.is-active {
+  background: #0c4a6e;
+  border-color: #0c4a6e;
+  color: #f8fafc;
+}
+
 .session-replay__transport input[type='range'] {
   flex: 1 1 220px;
   min-width: 160px;

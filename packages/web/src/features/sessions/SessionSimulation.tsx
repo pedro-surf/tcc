@@ -15,6 +15,8 @@ type Props = {
   onPlaying: (playing: boolean) => void
   onSpeed: (speed: number) => void
   onClose: () => void
+  upsideDown: boolean
+  onUpsideDown: (enabled: boolean) => void
 }
 
 export function SessionSimulation({
@@ -26,8 +28,13 @@ export function SessionSimulation({
   onPlaying,
   onSpeed,
   onClose,
+  upsideDown,
+  onUpsideDown,
 }: Props) {
-  const gpsRide = useMemo(() => sessionToTrajectory(session), [session])
+  const gpsRide = useMemo(
+    () => sessionToTrajectory(session, upsideDown),
+    [session, upsideDown],
+  )
   const demoRide = useMemo(() => generateMockTrajectory(18, 30), [])
   const ride = gpsRide ?? demoRide
   const usingGps = gpsRide != null
@@ -66,6 +73,14 @@ export function SessionSimulation({
               : 'No GPS fixes — demo trajectory on the shared timeline'}
           </p>
         </div>
+        <button
+          type="button"
+          className={`simulation-page__back${upsideDown ? ' is-active' : ''}`}
+          aria-pressed={upsideDown}
+          onClick={() => onUpsideDown(!upsideDown)}
+        >
+          IMU flip {upsideDown ? 'on' : 'off'}
+        </button>
       </header>
 
       <aside className="simulation-page__hud">

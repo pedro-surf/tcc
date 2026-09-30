@@ -12,6 +12,7 @@ import {
   stepKalman,
   type KalmanAttitude,
 } from './kalmanAttitude'
+import { flipChipAttitude, flipImuSample } from './imuMount'
 
 type LiveSample = Sample & {
   device: string
@@ -56,6 +57,7 @@ type AttitudeRuntime = {
   prevPitch: number
   havePose: boolean
   source: 'kalman' | 'device'
+  mount: boolean
 }
 
 function accelToTilt(sample: LiveSample) {
@@ -82,6 +84,7 @@ export function LiveBuoyPage() {
   const [streamOk, setStreamOk] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [useKalman, setUseKalman] = useState(true)
+  const [upsideDown, setUpsideDown] = useState(true)
   const filter = useRef({ roll: 0, pitch: 0, yaw: 0, tSec: 0, primed: false })
   const runtime = useRef<AttitudeRuntime>({
     attitude: createKalmanAttitude(),
@@ -93,6 +96,7 @@ export function LiveBuoyPage() {
     prevPitch: 0,
     havePose: false,
     source: 'device',
+    mount: true,
   })
 
   useEffect(() => {
@@ -131,11 +135,16 @@ export function LiveBuoyPage() {
     const tSec = latest.timestamp / 1000
     const speed = Math.hypot(latest.gx, latest.gy, latest.gz) * (Math.PI / 180)
     const source = useKalman ? 'kalman' : 'device'
-    if (rt.source !== source) {
+    if (rt.source !== source || rt.mount !== upsideDown) {
       rt.source = source
+      rt.mount = upsideDown
+      rt.armed = false
       rt.havePose = false
       rt.jitter = 0
+      filter.current.primed = false
     }
+
+    const imu = upsideDown ? flipImuSample(latest) : latest
 
     let roll: number
     let pitch: number
@@ -146,7 +155,9 @@ export function LiveBuoyPage() {
       if (!rt.armed || (rt.lastTs != null && latest.timestamp < rt.lastTs)) {
         rt.attitude = createKalmanAttitude()
         const started = performance.now()
-        for (const sample of samples) stepKalman(rt.attitude, sample)
+        for (const sample of samples) {
+          stepKalman(rt.attitude, upsideDown ? flipImuSample(sample) : sample)
+        }
         rt.stepUs = samples.length
           ? ((performance.now() - started) * 1000) / samples.length
           : 0
@@ -155,7 +166,7 @@ export function LiveBuoyPage() {
         advanced = true
       } else if (rt.lastTs !== latest.timestamp) {
         const started = performance.now()
-        stepKalman(rt.attitude, latest)
+        stepKalman(rt.attitude, imu)
         rt.stepUs = (performance.now() - started) * 1000
         rt.lastTs = latest.timestamp
         advanced = true
@@ -175,8 +186,14 @@ export function LiveBuoyPage() {
         roll = latest.roll
         pitch = latest.pitch
         yaw = latest.yaw
+        if (upsideDown) {
+          const mounted = flipChipAttitude(roll, pitch, yaw)
+          roll = mounted.roll
+          pitch = mounted.pitch
+          yaw = mounted.yaw
+        }
       } else {
-        const tilt = accelToTilt(latest)
+        const tilt = accelToTilt(imu)
         const state = filter.current
         const dt = state.primed
           ? Math.min(0.25, Math.max(0.02, tSec - state.tSec || 0.1))
@@ -184,10 +201,10 @@ export function LiveBuoyPage() {
         const toRad = Math.PI / 180
         const alpha = 0.96
         state.roll =
-          alpha * (state.roll + latest.gx * toRad * dt) + (1 - alpha) * tilt.roll
+          alpha * (state.roll + imu.gx * toRad * dt) + (1 - alpha) * tilt.roll
         state.pitch =
-          alpha * (state.pitch + latest.gy * toRad * dt) + (1 - alpha) * tilt.pitch
-        state.yaw += latest.gz * toRad * dt
+          alpha * (state.pitch + imu.gy * toRad * dt) + (1 - alpha) * tilt.pitch
+        state.yaw += imu.gz * toRad * dt
         state.tSec = tSec
         state.primed = true
         roll = state.roll
@@ -222,7 +239,7 @@ export function LiveBuoyPage() {
       stepUs: useKalman ? rt.stepUs : 0,
       jitterDeg: rt.jitter * RAD_TO_DEG,
     }
-  }, [latest, samples, useKalman])
+  }, [latest, samples, useKalman, upsideDown])
 
   return (
     <div className="simulation-page">
@@ -253,6 +270,14 @@ export function LiveBuoyPage() {
           onClick={() => setUseKalman((enabled) => !enabled)}
         >
           Kalman {useKalman ? 'on' : 'off'}
+        </button>
+        <button
+          type="button"
+          className={`simulation-page__back${upsideDown ? ' is-active' : ''}`}
+          aria-pressed={upsideDown}
+          onClick={() => setUpsideDown((enabled) => !enabled)}
+        >
+          IMU flip {upsideDown ? 'on' : 'off'}
         </button>
       </header>
 

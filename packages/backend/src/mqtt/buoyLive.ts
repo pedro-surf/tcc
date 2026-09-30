@@ -34,6 +34,30 @@ bus.setMaxListeners(50)
 
 const recent: BuoySample[] = []
 let connected = false
+let linkUp = false
+let lastSampleAt: number | null = null
+let lastDevice: string | null = null
+
+function buoyLog(level: 'log' | 'warn' | 'error', message: string) {
+  console[level](`[buoy-mqtt] ${new Date().toISOString()} ${message}`)
+}
+
+function noteLinkLost(reason: string) {
+  connected = false
+  if (!linkUp) return
+  linkUp = false
+  const now = Date.now()
+  if (lastSampleAt == null) {
+    buoyLog('warn', `${reason}; no sample received`)
+    return
+  }
+  const agoSec = Math.max(0, Math.round((now - lastSampleAt) / 1000))
+  const device = lastDevice ? ` device=${lastDevice}` : ''
+  buoyLog(
+    'warn',
+    `${reason}; last sample ${new Date(lastSampleAt).toISOString()} (${agoSec}s ago)${device}`,
+  )
+}
 
 function num(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -68,7 +92,7 @@ function asObject(parsed: unknown): Record<string, unknown> | null {
 function parseSample(topic: string, raw: unknown): BuoySample | null {
   const text = payloadToUtf8(raw).trim()
   if (!text) {
-    console.warn(`[buoy-mqtt] empty payload on ${topic}`)
+    buoyLog('warn', `empty payload on ${topic}`)
     return null
   }
 
@@ -76,13 +100,13 @@ function parseSample(topic: string, raw: unknown): BuoySample | null {
   try {
     parsed = JSON.parse(text)
   } catch {
-    console.warn(`[buoy-mqtt] not JSON on ${topic}: ${text.slice(0, 180)}`)
+    buoyLog('warn', `not JSON on ${topic}: ${text.slice(0, 180)}`)
     return null
   }
 
   const body = asObject(parsed)
   if (!body) {
-    console.warn(`[buoy-mqtt] unexpected JSON on ${topic}: ${text.slice(0, 180)}`)
+    buoyLog('warn', `unexpected JSON on ${topic}: ${text.slice(0, 180)}`)
     return null
   }
 
@@ -125,8 +149,9 @@ function parseSample(topic: string, raw: unknown): BuoySample | null {
     !('ax' in body)
 
   if (looksEmpty) {
-    console.warn(
-      `[buoy-mqtt] ignored empty message on ${topic} keys=${Object.keys(body).join(',') || '(none)'} raw=${text.slice(0, 180)}`,
+    buoyLog(
+      'warn',
+      `ignored empty message on ${topic} keys=${Object.keys(body).join(',') || '(none)'} raw=${text.slice(0, 180)}`,
     )
     return null
   }
@@ -167,34 +192,41 @@ export function startBuoyMqtt() {
 
   client.on('connect', () => {
     connected = true
+    linkUp = true
     client.subscribe(MQTT_TOPIC, (err) => {
       if (err) {
-        console.error(`[buoy-mqtt] subscribe failed: ${err.message}`)
+        buoyLog('error', `subscribe failed: ${err.message}`)
         return
       }
-      console.log(`[buoy-mqtt] subscribed ${MQTT_TOPIC} on ${MQTT_URL}`)
+      buoyLog('log', `subscribed ${MQTT_TOPIC} on ${MQTT_URL}`)
     })
   })
 
   client.on('reconnect', () => {
-    connected = false
+    noteLinkLost('reconnecting')
+  })
+
+  client.on('offline', () => {
+    noteLinkLost('offline')
   })
 
   client.on('close', () => {
-    connected = false
+    noteLinkLost('connection closed')
   })
 
   client.on('error', (err) => {
-    console.error(`[buoy-mqtt] ${err.message}`)
+    buoyLog('error', err.message)
   })
 
   client.on('message', (topic, payload) => {
     if (logged < 8) {
-      console.log(`[buoy-mqtt] ${topic} ${payloadToUtf8(payload).slice(0, 300)}`)
+      buoyLog('log', `${topic} ${payloadToUtf8(payload).slice(0, 300)}`)
       logged += 1
     }
     const sample = parseSample(topic, payload)
     if (sample) {
+      lastSampleAt = Date.now()
+      lastDevice = sample.device
       pushSample(sample)
     }
   })

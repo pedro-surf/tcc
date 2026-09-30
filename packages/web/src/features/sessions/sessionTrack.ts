@@ -1,5 +1,6 @@
 import type { Sample, Session } from '../../types'
 import type { TrajectoryFrame, TrajectoryRide } from '../simulation/mockTrajectory'
+import { flipChipAttitude } from '../live/imuMount'
 
 export type GpsPoint = {
   index: number
@@ -94,7 +95,10 @@ function toEnu(
  * Local-meter GPS path fitted onto the simulation ocean.
  * Speed and distance stay in real meters; x/z are scaled to the water plane.
  */
-export function sessionToTrajectory(session: Session): TrajectoryRide | null {
+export function sessionToTrajectory(
+  session: Session,
+  upsideDown = false,
+): TrajectoryRide | null {
   const samples = session.samples
   const track = gpsTrack(samples)
   if (samples.length === 0 || track.length < 2) return null
@@ -161,14 +165,18 @@ export function sessionToTrajectory(session: Session): TrajectoryRide | null {
 
     const roll = Number.isFinite(sample.roll) ? (sample.roll as number) : 0
     const pitch = Number.isFinite(sample.pitch) ? (sample.pitch as number) : 0
+    const mounted =
+      upsideDown && Number.isFinite(sample.roll)
+        ? flipChipAttitude(roll, pitch, 0)
+        : { roll, pitch }
 
     frames.push({
       t: (tMs - t0) / 1000,
       x: scene.x,
       y: 0.22,
       z: scene.z,
-      pitch,
-      roll,
+      pitch: mounted.pitch,
+      roll: mounted.roll,
       yaw,
       speed,
       height: 0.22,
