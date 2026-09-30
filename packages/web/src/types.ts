@@ -1,3 +1,4 @@
+import type { ActivitySegment, SlotId } from '@thesis/ai-classifier'
 
 export interface Sample {
     timestamp: number;
@@ -24,7 +25,7 @@ export interface Sample {
   
   export interface ManeuverEvent {
     timestamp: number;
-    type: 'impacto' | 'rotacao' | 'manobra_composta';
+    type: string;
     score: number;
   }
   
@@ -42,10 +43,12 @@ export interface Sample {
     intervalMs: number;
     manuevers: ManeuverEvent[];
     predictions: ClassifierResult[];
+    activities: ActivitySegment[];
+    classifierSlot: SlotId;
   }
 
   export interface ClassifierResult {
-    label: "Idle" | "Pop" | "Riding";
+    label: string;
     value: number;
   };
   

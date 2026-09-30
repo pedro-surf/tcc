@@ -1,0 +1,30 @@
+{
+  "name": "@thesis/ai-classifier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pluggable cloud inference pipe for surf IMU sessions",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "serverless offline --httpPort 4010 --lambdaPort 4012 --noPrependStageInUrl",
+    "job": "ts-node src/local.ts",
+    "check": "ts-node src/check.ts",
+    "invoke": "serverless invoke local -f jobs --path events/classify.json",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "esbuild": "^0.25.0",
+    "serverless": "^3.40.0",
+    "serverless-esbuild": "^1.55.0",
+    "serverless-offline": "^13.9.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

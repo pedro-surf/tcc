@@ -6,6 +6,8 @@ import { flipImuSample } from './features/live/imuMount'
 import { MqttLogModal } from './features/live/MqttLogModal'
 import { useBuoyMqttLogs } from './features/live/useBuoyMqttLogs'
 import { SessionTrackMap } from './components/map/SessionTrackMap'
+import { labelAt } from '@thesis/ai-classifier'
+import { activityName, CLEAR_ACTIVITIES } from './features/sessions/activityLabel'
 import {
   REPLAY_SPEEDS,
   SessionSimulation,
@@ -63,6 +65,25 @@ export default function SessionDetail({
   const magnitudeGyro = Math.sqrt(
     currentSample.gx ** 2 + currentSample.gy ** 2 + currentSample.gz ** 2,
   )
+  const activity = labelAt(session.activities ?? [], currentSample.timestamp)
+  const t0 = session.samples[0]?.timestamp ?? 0
+  const marks = (session.activities ?? []).filter((segment) =>
+    CLEAR_ACTIVITIES.has(segment.label),
+  )
+
+  const seek = (timestamp: number) => {
+    let best = 0
+    let bestDt = Infinity
+    session.samples.forEach((sample, index) => {
+      const dt = Math.abs(sample.timestamp - timestamp)
+      if (dt < bestDt) {
+        best = index
+        bestDt = dt
+      }
+    })
+    setPlaying(false)
+    setCursor(best)
+  }
 
   if (!hideReplay && view === 'simulation') {
     return (
@@ -171,6 +192,7 @@ export default function SessionDetail({
             <div className="session-replay__readout">
               <span>acc {magnitudeAcc.toFixed(2)}</span>
               <span>gyr {magnitudeGyro.toFixed(2)}</span>
+              <span>{activityName(activity)}</span>
               {currentSample.lat != null && currentSample.lon != null ? (
                 <span>
                   {currentSample.lat.toFixed(5)}, {currentSample.lon.toFixed(5)}
@@ -189,20 +211,35 @@ export default function SessionDetail({
 
         {!hideManuevers && (
           <div className="session-replay__maneuvers">
-            <h3>Manuevers</h3>
-            {session.manuevers.length > 0 ? (
+            <h3>
+              Activity
+              <span className="app-meta"> {session.classifierSlot}</span>
+            </h3>
+            {marks.length > 0 ? (
               <ul>
-                {session.manuevers.map((event, index) => (
-                  <li key={`${event.timestamp}-${index}`}>
-                    {event.timestamp}ms → {event.type} (Score: {event.score.toFixed(1)})
-                  </li>
-                ))}
+                {marks.map((segment) => {
+                  const active =
+                    currentSample.timestamp >= segment.startMs &&
+                    currentSample.timestamp < segment.endMs
+                  return (
+                    <li key={`${segment.label}-${segment.startMs}`}>
+                      <button
+                        type="button"
+                        className={active ? 'is-active' : ''}
+                        onClick={() => seek(segment.startMs)}
+                      >
+                        {((segment.startMs - t0) / 1000).toFixed(1)}s →{' '}
+                        {activityName(segment.label)} (Score: {segment.score.toFixed(1)})
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             ) : (
               <p className="app-meta">No maneuvers in this session.</p>
             )}
-        </div>
-      )}
+          </div>
+        )}
 
       <MqttLogModal open={logOpen} lines={logs} onClose={() => setLogOpen(false)} />
     </div>
@@ -217,7 +254,7 @@ const Results = ({
 }) => {
   return predictions.map((prediction) => (
     <h3 key={`${prediction.label}-${prediction.value}`}>
-      {prediction.label}: {(100 * prediction.value).toFixed(2)}%
+      {activityName(prediction.label)}: {(100 * prediction.value).toFixed(2)}%
     </h3>
   ))
 }

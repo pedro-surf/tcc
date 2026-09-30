@@ -1,91 +1,51 @@
-import type { Session } from "../types";
+import { classify, surfPhases, type SurfKind } from '@thesis/ai-classifier'
+import type { Sample, Session } from '../types'
+
+const ORIGINS = {
+  cutback: { lat: -27.6025, lon: -48.432 },
+  wipeout: { lat: -27.6295, lon: -48.4455 },
+} as const
 
 export const fakeSessions: Session[] = [
-  {
-    id: "AI-2026-10-08-001",
-    samples: generateFakeRide(600, 50, { lat: -27.6025, lon: -48.432 }),
-    results: [{ label: "Idle", value: 0.77 }],
+  buildFakeSession('AI-2026-10-08-001', 'cutback'),
+  buildFakeSession('AI-2026-01-11-001', 'wipeout'),
+]
+
+function buildFakeSession(id: string, kind: SurfKind): Session {
+  const samples = generateFakeRide(600, 50, ORIGINS[kind], kind)
+  const classified = classify(samples)
+  return {
+    id,
+    samples,
     intervalMs: 50,
-    manuevers: [],
-    predictions: [{ label: "Idle", value: 0.77 }],
-  },
-  {
-    id: "AI-2026-01-11-001",
-    samples: generateFakeRide(600, 50, { lat: -27.6295, lon: -48.4455 }),
-    results: [{ label: "Idle", value: 0.77 }],
-    intervalMs: 50,
-    manuevers: [],
-    predictions: [{ label: "Idle", value: 0.77 }, { label: "Pop", value: 0.35 }],
-  },
-];
+    results: classified.predictions,
+    predictions: classified.predictions,
+    manuevers: classified.events,
+    activities: classified.segments,
+    classifierSlot: classified.slot,
+  }
+}
 
 export function generateFakeRide(
-  samples = 250,
-  intervalMs = 10,
-  origin = { lat: -27.6025, lon: -48.432 },
-): Session['samples'] {
-  const out: Session['samples'] = []
-
-  let ax = 0
-  let ay = 0
-  let az = 9.6
-
-  let gx = 0
-  let gy = 0
-  let gz = 0
-
-  for (let i = 0; i < samples; i++) {
-    const t = i * intervalMs
-
-    // fase da manobra (entre 40% e 60%)
-    const maneuverPhase = i > samples * 0.4 && i < samples * 0.6
-
-    // aceleração longitudinal (drop / velocidade)
-    ax += (maneuverPhase ? 0.08 : 0.01) + rand(-0.02, 0.02)
-    ax *= 0.98
-
-    // lateral (carve)
-    ay += (maneuverPhase ? Math.sin(i * 0.15) * 0.15 : 0) + rand(-0.01, 0.01)
-    ay *= 0.9
-
-    // vertical (gravidade + impacto)
-    az = 9.6 + (maneuverPhase ? Math.sin(i * 0.2) * 1.8 : rand(-0.1, 0.1))
-
-    // rotação (bem importante pro 3D)
-    gx += (maneuverPhase ? 2.5 : 0.2) * rand(-1, 1)
-    gy += (maneuverPhase ? 1.8 : 0.1) * rand(-1, 1)
-    gz += (maneuverPhase ? 3.0 : 0.2) * rand(-1, 1)
-
-    gx *= 0.85
-    gy *= 0.85
-    gz *= 0.85
-
-    const u = samples <= 1 ? 0 : i / (samples - 1)
+  samples = 600,
+  intervalMs = 50,
+  origin: { lat: number; lon: number } = ORIGINS.cutback,
+  kind: SurfKind = 'cutback',
+): Sample[] {
+  return surfPhases({ samples, intervalMs, kind }).map((sample, index) => {
+    const u = samples <= 1 ? 0 : index / (samples - 1)
     const north = u * 70
     const east = 10 + Math.sin(u * Math.PI * 2) * 14
     const gps = offsetMeters(origin.lat, origin.lon, east, north)
-
-    out.push({
-      timestamp: t,
-      ax,
-      ay,
-      az,
-      gx,
-      gy,
-      gz,
+    return {
+      ...sample,
       lat: gps.lat,
       lon: gps.lon,
       fix: 1,
       alt: 1.2,
       sat: 9,
-    })
-  }
-
-  return out
-}
-
-function rand(min: number, max: number) {
-  return Math.random() * (max - min) + min
+    }
+  })
 }
 
 function offsetMeters(lat: number, lon: number, east: number, north: number) {
@@ -96,4 +56,4 @@ function offsetMeters(lat: number, lon: number, east: number, north: number) {
   }
 }
 
-export default fakeSessions;
+export default fakeSessions

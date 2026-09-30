@@ -1,40 +1,55 @@
-# AI Motion Classifier
+# AI Classifier
 
-This package contains the machine learning models responsible for classifying surf motion patterns based on inertial sensor data.
+Lambda that labels a surf session from inertial samples. The device keeps streaming IMU; this function does the classification.
 
-The input data originates from an ESP32-based device equipped with an MPU9250 IMU and additional environmental sensors. The firmware streams high-frequency motion data including acceleration, angular velocity, and magnetic field measurements. These signals represent the physical movement of the surfboard and surfer during a session.
+The pipe has two slots. `heuristic` is the default. `model` accepts the same series (and attitude quaternions) once an `.onnx`, `.tflite`, or exported binary is loaded.
 
-The goal of this module is to transform raw time-series sensor data into meaningful surf activity labels such as paddling, takeoff, turns, or wipeouts.
+## Jobs
 
-The project explores multiple modeling approaches:
+| HTTP | Payload | What it does |
+|---|---|---|
+| `POST /jobs/classify` | `{ slot?, samples? }` or `{ mqtt }` or `{ csv }` | Label one session |
 
-• Classical machine learning models (Random Forest, Gradient Boosting)  
-• Deep learning architectures for time-series data (CNN, LSTM)
+Send one input:
 
-The classifier operates on sliding windows of sensor data and outputs predicted motion events that can later be visualized in the web application or used for surf session analytics.
+- `samples`: JSON rows `{ timestamp, ax, ay, az, gx, gy, gz, ... }`
+- `mqtt`: one buoy payload or an array, same JSON the live stream publishes (`t_ms`, accel, gyro, attitude)
+- `csv`: SD-card text, header `timestamp_ms,ax,ay,az,gx,gy,gz,...`
 
-This module focuses exclusively on model training, evaluation, and inference pipelines.
+Accel is m/s². Gyro is deg/s. `roll` / `pitch` / `yaw` are radians.
 
-# WIP - Decicde between, or implemente both:
+Auth: `x-cron-secret` must match `CRON_SECRET`. A direct `{ job, secret }` invoke is also accepted.
 
-* CNN/LSTM (Deep Learning)
-* Random Forest (Classic AI)
+## Local
 
-# Simple helpful calculations
+```bash
+pnpm install
+pnpm -F @thesis/ai-classifier check
+pnpm -F @thesis/ai-classifier dev
+```
 
-## magnitude acc
-`acc_mag = sqrt(ax² + ay² + az²)`
+Offline listens on **http://localhost:4010**.
 
-Detects:
+```bash
+curl -X POST http://localhost:4010/jobs/classify ^
+  -H "Content-Type: application/json" ^
+  -H "x-cron-secret: dev-secret" ^
+  -d "{\"csv\":\"timestamp_ms,ax,ay,az,gx,gy,gz\\n0,0,0,9.8,0,0,0\\n100,0,0,9.8,0,0,0\"}"
+```
 
-* impact
-* drop
-* wipeout
+Direct handler:
 
-## Total angular velocity (magnitude gyr)
-`gyro_mag = sqrt(gx² + gy² + gz²)`
+```bash
+pnpm -F @thesis/ai-classifier job
+```
 
-Detects:
+## Env
 
-* curves
-* board rotation
+Loaded from `packages/ai-classifier/.env` if present, otherwise empty values are filled from `packages/backend/.env`.
+
+| Env | Purpose |
+|---|---|
+| `CRON_SECRET` | Shared invoke secret |
+| `CLASSIFIER_SLOT` | `heuristic` (default) or `model` |
+| `CLASSIFIER_MODEL_FORMAT` | `onnx`, `tflite`, or `binary` |
+| `CLASSIFIER_MODEL_PATH` | Weights file, read when the model runtime is linked |

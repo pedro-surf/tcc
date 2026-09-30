@@ -100,6 +100,34 @@
   grid-column: 1 / -1;
 }
 
+.session-replay__maneuvers h3 .app-meta {
+  margin-left: 8px;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.session-replay__maneuvers ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.session-replay__maneuvers button {
+  display: block;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.session-replay__maneuvers button.is-active {
+  color: #0c4a6e;
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .session-replay__grid {
     grid-template-columns: 1fr;

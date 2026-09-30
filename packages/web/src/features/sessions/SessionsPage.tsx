@@ -19,6 +19,8 @@ export function SessionsPage() {
       intervalMs,
       manuevers,
       predictions,
+      activities,
+      classifierSlot,
     } = await loadCbor(file)
     const payload = {
       id: `Imported-${file.name}`,
@@ -27,6 +29,8 @@ export function SessionsPage() {
       intervalMs,
       manuevers,
       predictions,
+      activities,
+      classifierSlot,
     }
     if (samples?.length) {
       if (selectedSession) {

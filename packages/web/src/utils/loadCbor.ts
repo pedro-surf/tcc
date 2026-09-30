@@ -2,7 +2,7 @@
 // @ts-expect-error no types
 import { decode } from "cbor-web";
 import type { ClassifierResult, ManeuverEvent, Sample } from "../types";
-import { detectManeuvers } from "./detectManeuvers";
+import { classify, type ActivitySegment, type SlotId } from "@thesis/ai-classifier";
 
 export async function loadCbor(file: File): Promise<{
   results: ClassifierResult[];
@@ -10,6 +10,8 @@ export async function loadCbor(file: File): Promise<{
   data: Sample[];
   intervalMs: number;
   manuevers: ManeuverEvent[];
+  activities: ActivitySegment[];
+  classifierSlot: SlotId;
 }> {
   const buffer = await file.arrayBuffer();
   const decoded: any = decode(new Uint8Array(buffer));
@@ -53,7 +55,14 @@ export async function loadCbor(file: File): Promise<{
 
     return sample as Sample;
   });
-  const predictions = results.sort((a, b) => b.value - a.value);
-  const manuevers = detectManeuvers(data);
-  return { results, data, intervalMs, manuevers, predictions };
+  const classified = classify(data);
+  return {
+    results,
+    data,
+    intervalMs,
+    manuevers: classified.events,
+    predictions: classified.predictions,
+    activities: classified.segments,
+    classifierSlot: classified.slot,
+  };
 }

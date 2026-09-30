@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { sampleTrajectory, generateMockTrajectory } from '../simulation/mockTrajectory'
 import { SimulationViewport } from '../simulation/SimulationViewport'
+import { labelAt } from '@thesis/ai-classifier'
 import type { Session } from '../../types'
+import { activityName } from './activityLabel'
 import { gpsAtCursor, sessionToTrajectory } from './sessionTrack'
 
 export const REPLAY_SPEEDS = [0.25, 0.5, 1, 2, 4] as const
@@ -58,6 +60,10 @@ export function SessionSimulation({
   )
   const progress = ride.durationSec > 0 ? timeSec / ride.durationSec : 0
   const position = gpsAtCursor(session.samples, clamped)
+  const activity = labelAt(
+    session.activities ?? [],
+    session.samples[clamped]?.timestamp ?? 0,
+  )
 
   return (
     <div className="simulation-page">
@@ -106,6 +112,10 @@ export function SessionSimulation({
           <strong>
             {timeSec.toFixed(1)}s / {ride.durationSec.toFixed(0)}s
           </strong>
+        </div>
+        <div>
+          <span>Activity</span>
+          <strong>{activityName(activity)}</strong>
         </div>
         {position ? (
           <div>

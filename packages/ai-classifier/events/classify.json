@@ -1,0 +1,17 @@
+{
+  "job": "classify",
+  "secret": "dev-secret",
+  "slot": "heuristic",
+  "mqtt": [
+    {
+      "device": "buoy-sensor-v1",
+      "t_ms": 0,
+      "ax": 2.4,
+      "ay": 0,
+      "az": 9.8,
+      "gx": 5,
+      "gy": 4,
+      "gz": 6
+    }
+  ]
+}

@@ -12,6 +12,34 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
+  packages/ai-classifier:
+    dependencies:
+      dotenv:
+        specifier: ^17.4.0
+        version: 17.4.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.5.0
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
+      serverless:
+        specifier: ^3.40.0
+        version: 3.40.0(@types/node@25.5.0)
+      serverless-esbuild:
+        specifier: ^1.55.0
+        version: 1.57.2(esbuild@0.25.12)
+      serverless-offline:
+        specifier: ^13.9.0
+        version: 13.10.1(serverless@3.40.0(@types/node@25.5.0))
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@25.5.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/ai-forecast:
     dependencies:
       '@prisma/client':
@@ -136,6 +164,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.4)
+      '@thesis/ai-classifier':
+        specifier: workspace:*
+        version: link:../ai-classifier
       cbor-web:
         specifier: ^10.0.11
         version: 10.0.12
