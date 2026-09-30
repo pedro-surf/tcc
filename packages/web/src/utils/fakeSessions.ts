@@ -3,23 +3,27 @@ import type { Session } from "../types";
 export const fakeSessions: Session[] = [
   {
     id: "AI-2026-10-08-001",
-    samples: generateFakeRide(),
+    samples: generateFakeRide(600, 50, { lat: -27.6025, lon: -48.432 }),
     results: [{ label: "Idle", value: 0.77 }],
-    intervalMs: 10,
+    intervalMs: 50,
     manuevers: [],
     predictions: [{ label: "Idle", value: 0.77 }],
   },
   {
     id: "AI-2026-01-11-001",
-    samples: generateFakeRide(),
+    samples: generateFakeRide(600, 50, { lat: -27.6295, lon: -48.4455 }),
     results: [{ label: "Idle", value: 0.77 }],
-    intervalMs: 10,
+    intervalMs: 50,
     manuevers: [],
     predictions: [{ label: "Idle", value: 0.77 }, { label: "Pop", value: 0.35 }],
   },
 ];
 
-export function generateFakeRide(samples = 250, intervalMs = 10): Session['samples'] {
+export function generateFakeRide(
+  samples = 250,
+  intervalMs = 10,
+  origin = { lat: -27.6025, lon: -48.432 },
+): Session['samples'] {
   const out: Session['samples'] = []
 
   let ax = 0
@@ -56,6 +60,11 @@ export function generateFakeRide(samples = 250, intervalMs = 10): Session['sampl
     gy *= 0.85
     gz *= 0.85
 
+    const u = samples <= 1 ? 0 : i / (samples - 1)
+    const north = u * 70
+    const east = 10 + Math.sin(u * Math.PI * 2) * 14
+    const gps = offsetMeters(origin.lat, origin.lon, east, north)
+
     out.push({
       timestamp: t,
       ax,
@@ -63,7 +72,12 @@ export function generateFakeRide(samples = 250, intervalMs = 10): Session['sampl
       az,
       gx,
       gy,
-      gz
+      gz,
+      lat: gps.lat,
+      lon: gps.lon,
+      fix: 1,
+      alt: 1.2,
+      sat: 9,
     })
   }
 
@@ -72,6 +86,14 @@ export function generateFakeRide(samples = 250, intervalMs = 10): Session['sampl
 
 function rand(min: number, max: number) {
   return Math.random() * (max - min) + min
+}
+
+function offsetMeters(lat: number, lon: number, east: number, north: number) {
+  const latRad = (lat * Math.PI) / 180
+  return {
+    lat: lat + north / 111_320,
+    lon: lon + east / (111_320 * Math.cos(latRad)),
+  }
 }
 
 export default fakeSessions;

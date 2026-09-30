@@ -6,6 +6,12 @@ import {
   type TrajectoryFrame,
 } from '../simulation/mockTrajectory'
 import { SimulationViewport } from '../simulation/SimulationViewport'
+import { LiveMiniMap } from './LiveMiniMap'
+import {
+  createKalmanAttitude,
+  stepKalman,
+  type KalmanAttitude,
+} from './kalmanAttitude'
 
 type LiveSample = Sample & {
   device: string
@@ -38,6 +44,20 @@ const REST_POSE: TrajectoryFrame = {
   distance: 0,
 }
 
+const RAD_TO_DEG = 180 / Math.PI
+
+type AttitudeRuntime = {
+  attitude: KalmanAttitude
+  armed: boolean
+  lastTs: number | null
+  stepUs: number
+  jitter: number
+  prevRoll: number
+  prevPitch: number
+  havePose: boolean
+  source: 'kalman' | 'device'
+}
+
 function accelToTilt(sample: LiveSample) {
   return {
     roll: Math.atan2(sample.ay, sample.az),
@@ -45,12 +65,35 @@ function accelToTilt(sample: LiveSample) {
   }
 }
 
+function angleDelta(next: number, prev: number) {
+  let delta = next - prev
+  while (delta > Math.PI) delta -= Math.PI * 2
+  while (delta < -Math.PI) delta += Math.PI * 2
+  return Math.abs(delta)
+}
+
+function formatRpy(roll: number, pitch: number, yaw: number) {
+  return `${(roll * RAD_TO_DEG).toFixed(1)} ${(pitch * RAD_TO_DEG).toFixed(1)} ${(yaw * RAD_TO_DEG).toFixed(1)}`
+}
+
 export function LiveBuoyPage() {
   const [samples, setSamples] = useState<LiveSample[]>([])
   const [mqtt, setMqtt] = useState(false)
   const [streamOk, setStreamOk] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [useKalman, setUseKalman] = useState(true)
   const filter = useRef({ roll: 0, pitch: 0, yaw: 0, tSec: 0, primed: false })
+  const runtime = useRef<AttitudeRuntime>({
+    attitude: createKalmanAttitude(),
+    armed: false,
+    lastTs: null,
+    stepUs: 0,
+    jitter: 0,
+    prevRoll: 0,
+    prevPitch: 0,
+    havePose: false,
+    source: 'device',
+  })
 
   useEffect(() => {
     const source = new EventSource(`${API_BASE_URL}/live/buoy/stream`)
@@ -79,63 +122,111 @@ export function LiveBuoyPage() {
 
   const latest = samples.at(-1)
 
-  const frame = useMemo(() => {
-    if (!latest) return REST_POSE
+  const pose = useMemo(() => {
+    const rt = runtime.current
+    if (!latest) {
+      return { frame: REST_POSE, stepUs: 0, jitterDeg: 0 }
+    }
 
     const tSec = latest.timestamp / 1000
     const speed = Math.hypot(latest.gx, latest.gy, latest.gz) * (Math.PI / 180)
+    const source = useKalman ? 'kalman' : 'device'
+    if (rt.source !== source) {
+      rt.source = source
+      rt.havePose = false
+      rt.jitter = 0
+    }
 
-    if (
-      latest.roll !== undefined &&
-      latest.pitch !== undefined &&
-      latest.yaw !== undefined
-    ) {
-      return {
+    let roll: number
+    let pitch: number
+    let yaw: number
+    let advanced = false
+
+    if (useKalman) {
+      if (!rt.armed || (rt.lastTs != null && latest.timestamp < rt.lastTs)) {
+        rt.attitude = createKalmanAttitude()
+        const started = performance.now()
+        for (const sample of samples) stepKalman(rt.attitude, sample)
+        rt.stepUs = samples.length
+          ? ((performance.now() - started) * 1000) / samples.length
+          : 0
+        rt.lastTs = latest.timestamp
+        rt.armed = true
+        advanced = true
+      } else if (rt.lastTs !== latest.timestamp) {
+        const started = performance.now()
+        stepKalman(rt.attitude, latest)
+        rt.stepUs = (performance.now() - started) * 1000
+        rt.lastTs = latest.timestamp
+        advanced = true
+      }
+      roll = rt.attitude.roll.angle
+      pitch = rt.attitude.pitch.angle
+      yaw = rt.attitude.yaw
+    } else {
+      rt.armed = false
+      advanced = rt.lastTs !== latest.timestamp
+      rt.lastTs = latest.timestamp
+      if (
+        latest.roll !== undefined &&
+        latest.pitch !== undefined &&
+        latest.yaw !== undefined
+      ) {
+        roll = latest.roll
+        pitch = latest.pitch
+        yaw = latest.yaw
+      } else {
+        const tilt = accelToTilt(latest)
+        const state = filter.current
+        const dt = state.primed
+          ? Math.min(0.25, Math.max(0.02, tSec - state.tSec || 0.1))
+          : 0.1
+        const toRad = Math.PI / 180
+        const alpha = 0.96
+        state.roll =
+          alpha * (state.roll + latest.gx * toRad * dt) + (1 - alpha) * tilt.roll
+        state.pitch =
+          alpha * (state.pitch + latest.gy * toRad * dt) + (1 - alpha) * tilt.pitch
+        state.yaw += latest.gz * toRad * dt
+        state.tSec = tSec
+        state.primed = true
+        roll = state.roll
+        pitch = state.pitch
+        yaw = state.yaw
+      }
+    }
+
+    if (advanced) {
+      if (rt.havePose) {
+        const step = angleDelta(roll, rt.prevRoll) + angleDelta(pitch, rt.prevPitch)
+        rt.jitter = rt.jitter * 0.85 + step * 0.15
+      }
+      rt.prevRoll = roll
+      rt.prevPitch = pitch
+      rt.havePose = true
+    }
+
+    return {
+      frame: {
         t: tSec,
         x: REST_POSE.x,
         y: REST_POSE.y,
         z: REST_POSE.z,
-        roll: latest.roll,
-        pitch: latest.pitch,
-        yaw: latest.yaw,
+        roll,
+        pitch,
+        yaw,
         speed,
         height: REST_POSE.y,
         distance: 0,
-      } satisfies TrajectoryFrame
+      } satisfies TrajectoryFrame,
+      stepUs: useKalman ? rt.stepUs : 0,
+      jitterDeg: rt.jitter * RAD_TO_DEG,
     }
-
-    const tilt = accelToTilt(latest)
-    const state = filter.current
-    const dt = state.primed
-      ? Math.min(0.25, Math.max(0.02, tSec - state.tSec || 0.1))
-      : 0.1
-    const toRad = Math.PI / 180
-    const alpha = 0.96
-
-    state.roll = alpha * (state.roll + latest.gx * toRad * dt) + (1 - alpha) * tilt.roll
-    state.pitch =
-      alpha * (state.pitch + latest.gy * toRad * dt) + (1 - alpha) * tilt.pitch
-    state.yaw += latest.gz * toRad * dt
-    state.tSec = tSec
-    state.primed = true
-
-    return {
-      t: tSec,
-      x: REST_POSE.x,
-      y: REST_POSE.y,
-      z: REST_POSE.z,
-      pitch: state.pitch,
-      roll: state.roll,
-      yaw: state.yaw,
-      speed,
-      height: REST_POSE.y,
-      distance: 0,
-    } satisfies TrajectoryFrame
-  }, [latest])
+  }, [latest, samples, useKalman])
 
   return (
     <div className="simulation-page">
-      <SimulationViewport frame={frame} showMarker={false} />
+      <SimulationViewport frame={pose.frame} showMarker={false} />
 
       <header className="simulation-page__top">
         <Link to="/" className="simulation-page__back">
@@ -148,8 +239,21 @@ export function LiveBuoyPage() {
             {mqtt ? ' · MQTT up' : ' · MQTT down'}
             {latest ? ` · ${latest.device}` : ''}
           </p>
+          <p>
+            {useKalman
+              ? 'Board follows a browser Kalman filter on the raw IMU.'
+              : 'Board follows device roll, pitch, and yaw.'}
+          </p>
           {error ? <p>{error}</p> : null}
         </div>
+        <button
+          type="button"
+          className={`simulation-page__back${useKalman ? ' is-active' : ''}`}
+          aria-pressed={useKalman}
+          onClick={() => setUseKalman((enabled) => !enabled)}
+        >
+          Kalman {useKalman ? 'on' : 'off'}
+        </button>
       </header>
 
       <aside className="simulation-page__hud">
@@ -186,6 +290,22 @@ export function LiveBuoyPage() {
           </strong>
         </div>
         <div>
+          <span>Attitude</span>
+          <strong>
+            {latest
+              ? formatRpy(pose.frame.roll, pose.frame.pitch, pose.frame.yaw)
+              : '—'}
+          </strong>
+        </div>
+        <div>
+          <span>Jitter</span>
+          <strong>{latest ? `${pose.jitterDeg.toFixed(2)} °/sample` : '—'}</strong>
+        </div>
+        <div>
+          <span>Filter</span>
+          <strong>{useKalman ? `${pose.stepUs.toFixed(1)} µs` : 'off'}</strong>
+        </div>
+        <div>
           <span>GPS</span>
           <strong>
             {latest?.fix
@@ -196,6 +316,8 @@ export function LiveBuoyPage() {
           </strong>
         </div>
       </aside>
+
+      <LiveMiniMap samples={samples} />
     </div>
   )
 }

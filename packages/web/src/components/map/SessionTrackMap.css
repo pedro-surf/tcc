@@ -1,0 +1,60 @@
+.session-track-map {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-track-map__canvas {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.session-track-map--empty {
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.session-track-map--empty p {
+  margin: 0;
+}
+
+.session-track-map__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: #334155;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.session-track-map__footer button {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+.session-track-map__footer button.is-active {
+  background: #0c4a6e;
+  border-color: #0c4a6e;
+  color: #f8fafc;
+}
+
+.session-map-pin span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 4px;
+  border-radius: 50%;
+  background: #0284c7;
+  border: 3px solid #fff;
+  box-shadow:
+    0 0 0 6px rgba(2, 132, 199, 0.28),
+    0 2px 6px rgba(15, 23, 42, 0.35);
+}

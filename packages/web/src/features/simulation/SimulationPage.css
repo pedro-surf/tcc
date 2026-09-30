@@ -66,6 +66,11 @@
   border-color: #38bdf8;
 }
 
+.simulation-page__back.is-active {
+  background: #0369a1;
+  border-color: #7dd3fc;
+}
+
 .simulation-page__hud {
   position: absolute;
   top: 16px;

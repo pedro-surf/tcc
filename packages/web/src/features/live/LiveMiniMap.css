@@ -1,0 +1,81 @@
+.live-mini-map {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 4;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  color: #e2e8f0;
+}
+
+.live-mini-map__handle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.live-mini-map__handle:active {
+  cursor: grabbing;
+}
+
+.live-mini-map__handle button {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.4);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+}
+
+.live-mini-map__handle button.is-active {
+  background: #0369a1;
+  border-color: #7dd3fc;
+  color: #f8fafc;
+}
+
+.live-mini-map__canvas {
+  height: 160px;
+  width: 100%;
+  z-index: 0;
+}
+
+.live-mini-map__coords {
+  padding: 6px 10px 8px;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #cbd5e1;
+}
+
+.live-mini-map__pin span {
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin: 3px;
+  border-radius: 50%;
+  background: #0284c7;
+  border: 2px solid #fff;
+  box-shadow:
+    0 0 0 5px rgba(2, 132, 199, 0.28),
+    0 2px 6px rgba(15, 23, 42, 0.35);
+}
+
+.live-mini-map .leaflet-control-attribution {
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.75);
+}

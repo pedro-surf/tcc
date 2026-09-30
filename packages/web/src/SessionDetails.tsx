@@ -1,16 +1,22 @@
-import { useEffect, useRef, useState } from "react";
-import type { Session } from "./types";
-import SensorCharts from "./SensorCharts";
-import { Board3D } from "./Board";
+import { useEffect, useRef, useState } from 'react'
+import type { Session } from './types'
+import SensorCharts from './SensorCharts'
+import { Board3D } from './Board'
+import { SessionTrackMap } from './components/map/SessionTrackMap'
+import {
+  REPLAY_SPEEDS,
+  SessionSimulation,
+} from './features/sessions/SessionSimulation'
+import './features/sessions/SessionReplay.css'
 
-const SPEEDS = [0.25, 0.5, 1, 1.5, 2] as const;
+type ReplayView = 'analysis' | 'simulation'
 
 type Props = {
-  session: Session;
-  hideTimeline?: boolean;
-  hideReplay?: boolean;
-  hideManuevers?: boolean;
-};
+  session: Session
+  hideTimeline?: boolean
+  hideReplay?: boolean
+  hideManuevers?: boolean
+}
 
 export default function SessionDetail({
   session,
@@ -18,107 +24,173 @@ export default function SessionDetail({
   hideTimeline,
   hideManuevers,
 }: Props) {
-  const [cursor, setCursor] = useState<number>(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
+  const [cursor, setCursor] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(1)
+  const [view, setView] = useState<ReplayView>('analysis')
 
-  const playerRef = useRef(0);
+  const playerRef = useRef(0)
   useEffect(() => {
-    if (!playing) return;
+    if (!playing) return
 
+    const last = session.samples.length - 1
     const player = setInterval(() => {
-      setCursor((c) => {
-        playerRef.current += speed;
-        const step = Math.floor(playerRef.current);
-        playerRef.current -= step;
+      setCursor((current) => {
+        playerRef.current += speed
+        const step = Math.floor(playerRef.current)
+        playerRef.current -= step
+        const next = Math.min(current + step, last)
+        if (next >= last) queueMicrotask(() => setPlaying(false))
+        return next
+      })
+    }, 16)
 
-        return Math.min(c + step, session.samples.length - 1);
-      });
-    }, 16);
+    return () => clearInterval(player)
+  }, [playing, speed, session.samples.length])
 
-    return () => clearInterval(player);
-  }, [playing, speed, session.samples.length]);
+  const currentSample = session.samples[cursor]
+  if (!currentSample) return null
 
-  const currentSample = session.samples[cursor];
   const magnitudeAcc = Math.sqrt(
     currentSample.ax ** 2 + currentSample.ay ** 2 + currentSample.az ** 2,
-  );
+  )
   const magnitudeGyro = Math.sqrt(
     currentSample.gx ** 2 + currentSample.gy ** 2 + currentSample.gz ** 2,
-  );
-  // const magnitudeMag = Math.sqrt(currentSample.mx ** 2 + currentSample.my ** 2 + currentSample.mz ** 2);
+  )
+
+  if (!hideReplay && view === 'simulation') {
+    return (
+      <SessionSimulation
+        session={session}
+        cursor={cursor}
+        playing={playing}
+        speed={speed}
+        onCursor={setCursor}
+        onPlaying={setPlaying}
+        onSpeed={setSpeed}
+        onClose={() => setView('analysis')}
+      />
+    )
+  }
 
   return (
-    <div className="d-flex flex-clmn" style={{ flex: 1 }}>
+    <div className="session-replay">
+      {!hideReplay && (
+        <div className="session-replay__switch" role="tablist" aria-label="Replay view">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'analysis'}
+            className={view === 'analysis' ? 'is-active' : ''}
+            onClick={() => setView('analysis')}
+          >
+            Charts
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={false}
+            onClick={() => setView('simulation')}
+          >
+            Simulation
+          </button>
+        </div>
+      )}
+
       {!hideTimeline && (
-        <>
-          <div>
-            <button onClick={() => setPlaying((p) => !p)}>
-              {playing ? "Pause" : "Play"}
-            </button>
-            <select
-              value={speed}
-              onChange={(e) => setSpeed(Number(e.target.value))}
-            >
-              {SPEEDS.map((s) => (
-                <option key={s} value={s}>
-                  {s}x
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="session-replay__transport">
+          <button
+            type="button"
+            onClick={() => {
+              if (!playing && cursor >= session.samples.length - 1) setCursor(0)
+              setPlaying((value) => !value)
+            }}
+          >
+            {playing ? 'Pause' : 'Play'}
+          </button>
+          <select
+            value={speed}
+            aria-label="Playback rate"
+            onChange={(event) => setSpeed(Number(event.target.value))}
+          >
+            {REPLAY_SPEEDS.map((rate) => (
+              <option key={rate} value={rate}>
+                {rate}x
+              </option>
+            ))}
+          </select>
           <input
             type="range"
             min={0}
             max={session.samples.length - 1}
             value={cursor}
-            onChange={(e) => setCursor(Number(e.target.value))}
-            style={{ width: "100%" }}
+            aria-label="Timeline"
+            onChange={(event) => setCursor(Number(event.target.value))}
           />
-        </>
+        </div>
       )}
+
       <Results predictions={session.predictions} />
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-        <div style={{ width: "48%", minHeight: 500 }}>
+
+      <div className="session-replay__grid">
+        <div className="session-replay__charts">
           <SensorCharts session={session} setCursor={setCursor} />
         </div>
-        {!hideReplay && (
-          <div style={{ width: "50%", height: 500 }}>
-            <h3>Replay</h3>
-            <Board3D sample={currentSample} />
 
-            <p>acc: {magnitudeAcc}</p>
-            <p>gyr: {magnitudeGyro}</p>
+        {!hideReplay && (
+          <div className="session-replay__board">
+            <h3>Replay</h3>
+            <div className="session-replay__board-canvas">
+              <Board3D sample={currentSample} />
+            </div>
+            <div className="session-replay__readout">
+              <span>acc {magnitudeAcc.toFixed(2)}</span>
+              <span>gyr {magnitudeGyro.toFixed(2)}</span>
+              {currentSample.lat != null && currentSample.lon != null ? (
+                <span>
+                  {currentSample.lat.toFixed(5)}, {currentSample.lon.toFixed(5)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        {!hideReplay && (
+          <div className="session-replay__map">
+            <h3>GPS</h3>
+            <SessionTrackMap samples={session.samples} cursor={cursor} />
           </div>
         )}
 
         {!hideManuevers && (
-          <div style={{ width: "50%", height: 500, paddingTop: "32px" }}>
+          <div className="session-replay__maneuvers">
             <h3>Manuevers</h3>
-            {session.manuevers.length > 0 && (
+            {session.manuevers.length > 0 ? (
               <ul>
-                {session.manuevers.map((e, i) => (
-                  <li key={i}>
-                    {e.timestamp}ms → {e.type} (Score: {e.score.toFixed(1)})
+                {session.manuevers.map((event, index) => (
+                  <li key={`${event.timestamp}-${index}`}>
+                    {event.timestamp}ms → {event.type} (Score: {event.score.toFixed(1)})
                   </li>
                 ))}
               </ul>
+            ) : (
+              <p className="app-meta">No maneuvers in this session.</p>
             )}
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }
 
 const Results = ({
   predictions = [],
 }: {
-  predictions: Session["predictions"];
+  predictions: Session['predictions']
 }) => {
   return predictions.map((prediction) => (
-    <h3>
+    <h3 key={`${prediction.label}-${prediction.value}`}>
       {prediction.label}: {(100 * prediction.value).toFixed(2)}%
     </h3>
-  ));
-};
+  ))
+}

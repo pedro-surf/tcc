@@ -26,6 +26,10 @@ function createSurfboardGeometry() {
   return geometry
 }
 
+const SURFACE_Y = 0
+const BOARD_CLEARANCE = 0.08
+const cornerScratch = new THREE.Vector3()
+
 type BoardActorProps = {
   frame: TrajectoryFrame
   showMarker?: boolean
@@ -34,11 +38,34 @@ type BoardActorProps = {
 export function BoardActor({ frame, showMarker = true }: BoardActorProps) {
   const group = useRef<THREE.Group>(null!)
   const geometry = useMemo(() => createSurfboardGeometry(), [])
+  const corners = useMemo(() => {
+    geometry.computeBoundingBox()
+    const box = geometry.boundingBox
+    if (!box) return []
+    const points: THREE.Vector3[] = []
+    for (const x of [box.min.x, box.max.x]) {
+      for (const y of [box.min.y, box.max.y]) {
+        for (const z of [box.min.z, box.max.z]) {
+          points.push(new THREE.Vector3(x, y, z))
+        }
+      }
+    }
+    return points
+  }, [geometry])
 
   useFrame(() => {
     if (!group.current) return
-    group.current.position.set(frame.x, frame.y, frame.z)
     group.current.rotation.set(frame.pitch, frame.yaw, frame.roll, 'YXZ')
+    const rotation = group.current.quaternion
+    let lowest = Infinity
+    for (const corner of corners) {
+      lowest = Math.min(lowest, cornerScratch.copy(corner).applyQuaternion(rotation).y)
+    }
+    const y =
+      lowest === Infinity
+        ? frame.y
+        : Math.max(frame.y, SURFACE_Y + BOARD_CLEARANCE - lowest)
+    group.current.position.set(frame.x, y, frame.z)
   })
 
   return (

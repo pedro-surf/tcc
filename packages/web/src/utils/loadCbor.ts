@@ -28,16 +28,27 @@ export async function loadCbor(file: File): Promise<{
       timestamp: index * intervalMs,
     };
 
-    sensors.forEach((name: string, i: number) => {
-      if (name === "accX") sample.ax = row[i];
-      if (name === "accY") sample.ay = row[i];
-      if (name === "accZ") sample.az = row[i];
-      if (name === "gyrX") sample.gx = row[i];
-      if (name === "gyrY") sample.gy = row[i];
-      if (name === "gyrZ") sample.gz = row[i];
-      if (name === "magX") sample.mx = row[i];
-      if (name === "magY") sample.my = row[i];
-      if (name === "magZ") sample.mz = row[i];
+    sensors.forEach((rawName: string, i: number) => {
+      const name = String(rawName).toLowerCase();
+      if (name === "accx") sample.ax = row[i];
+      if (name === "accy") sample.ay = row[i];
+      if (name === "accz") sample.az = row[i];
+      if (name === "gyrx") sample.gx = row[i];
+      if (name === "gyry") sample.gy = row[i];
+      if (name === "gyrz") sample.gz = row[i];
+      if (name === "magx") sample.mx = row[i];
+      if (name === "magy") sample.my = row[i];
+      if (name === "magz") sample.mz = row[i];
+      if (name === "lat" || name === "latitude") sample.lat = row[i];
+      if (name === "lon" || name === "lng" || name === "longitude") sample.lon = row[i];
+      if (name === "fix") sample.fix = row[i];
+      if (name === "alt" || name === "altitude") sample.alt = row[i];
+      if (name === "sat" || name === "satellites") sample.sat = row[i];
+      if (name === "roll") sample.roll = row[i];
+      if (name === "pitch") sample.pitch = row[i];
+      if (name === "yaw") sample.yaw = row[i];
+      if (name === "pressure" || name === "pressure_pa") sample.pressure = row[i];
+      if (name === "temperature" || name === "temperature_c") sample.temperature = row[i];
     });
 
     return sample as Sample;
