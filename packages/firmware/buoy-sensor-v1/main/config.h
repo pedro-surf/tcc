@@ -4,7 +4,7 @@
  * Bring-up knobs — flip these, rebuild, flash.
  * 1 = on, 0 = off
  */
-#define ENABLE_SD      0
+#define ENABLE_SD      1
 #define ENABLE_MQTT    1
 #define ENABLE_MAG     1  /* AK8963 on GY-91; extra I2C every sample */
 #define ENABLE_FUSION  1  /* complementary roll/pitch (yaw = gyro integrate) */
@@ -30,6 +30,23 @@
 
 /* UART: print every N samples (10 = 1 Hz). */
 #define UART_LOG_EVERY_N  10
+
+/*
+ * SD: fsync the CSV every N samples (minimum 1).
+ *   20 = every 2 s at 10 Hz (less wear; lose up to 2 s on power cut)
+ *    1 = every sample
+ */
+#define SD_FLUSH_EVERY_N  20
+
+/*
+ * How long to wait for a clock before opening the CSV.
+ * Time comes from SNTP after Wi-Fi, or from the serial console:
+ *   TIME 2026-10-09T15:04:00
+ *   TIME 1728486240
+ * 0 skips the wait. A later sync is still written into the session header.
+ */
+#define CLOCK_WAIT_MS    15000
+#define CLOCK_NTP_SERVER "pool.ntp.org"
 
 /*
  * MQTT: publish every N samples.

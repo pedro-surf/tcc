@@ -21,6 +21,7 @@ type Props = {
   hideTimeline?: boolean
   hideReplay?: boolean
   hideManuevers?: boolean
+  hideResults?: boolean
 }
 
 export default function SessionDetail({
@@ -28,6 +29,7 @@ export default function SessionDetail({
   hideReplay,
   hideTimeline,
   hideManuevers,
+  hideResults = true,
 }: Props) {
   const [cursor, setCursor] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -168,13 +170,9 @@ export default function SessionDetail({
           >
             IMU flip {upsideDown ? 'on' : 'off'}
           </button>
-          <button type="button" onClick={() => setLogOpen(true)}>
-            MQTT log
-          </button>
         </div>
       )}
 
-      <Results predictions={session.predictions} />
 
       <div className="session-replay__grid">
         <div className="session-replay__charts">
@@ -240,6 +238,7 @@ export default function SessionDetail({
             )}
           </div>
         )}
+        {!hideResults && <Results predictions={session.predictions} />}
 
       <MqttLogModal open={logOpen} lines={logs} onClose={() => setLogOpen(false)} />
     </div>

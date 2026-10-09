@@ -1,0 +1,2 @@
+# schema=buoy-sensor-v1;version=4;sample_hz=010;file=SDCARD-2026-10-09-003;boot=000003;t0_unix_ms=1791560282816;time_source=wifi;units=g,dps,uT,rad,Pa,C,deg,m
+timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,roll,pitch,yaw,pressure_pa,temperature_c,lat,lon,fix,alt,sat

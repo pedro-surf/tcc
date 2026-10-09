@@ -1,6 +1,8 @@
 import { createListQuery } from "../utils/createListQuery"
 import { loadGqlObjects } from "../utils/loadObjects"
 import './me'
+import './mySessions'
+import './session'
 import './spot'
 import './spots'
 import './spotForecastsBySpot'

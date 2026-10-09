@@ -27,16 +27,18 @@ Component notes: [`docs/`](docs/) — NEO-6M bring-up in [`docs/neo-6m.md`](docs
 
 ## SD CSV format
 
-Files land in `/sdcard/sessions/session_<boot_ms>.csv`.
+Files land in `/sdcard/sessions/SDCARD-2026-10-09-001.csv`. The date is the UTC day the session started, and `001` counts up for that day (`/sdcard/meta.txt`). `/sdcard/bootlog.csv` records each boot and when the clock was set.
+
+The clock is UTC from SNTP after Wi-Fi connects, or from the serial console (`TIME 2026-10-09T15:04:00` or `TIME 1728486240`). `timestamp_ms` is milliseconds since that file opened. Once the clock is known, `t0_unix_ms` in the header is the Unix time of sample 0, so sessions line up as `t0_unix_ms + timestamp_ms`.
 
 ```csv
-# schema=buoy-sensor-v1;version=3;sample_hz=10;device=buoy-sensor-v1;units=g,dps,uT,rad,Pa,C,deg,m
+# schema=buoy-sensor-v1;version=4;sample_hz=010;file=SDCARD-2026-10-09-001;boot=000003;t0_unix_ms=1728485640123;time_source=wifi;units=g,dps,uT,rad,Pa,C,deg,m
 timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,roll,pitch,yaw,pressure_pa,temperature_c,lat,lon,fix,alt,sat
 ```
 
 | Column | Meaning | Backend mapping |
 |--------|---------|-----------------|
-| `timestamp_ms` | ms since session open | `Sample.timestamp` |
+| `timestamp_ms` | ms since session open; add header `t0_unix_ms` for absolute time | `Sample.timestamp` |
 | `ax,ay,az` | accel (g) | `Sample.ax/ay/az` |
 | `gx,gy,gz` | gyro (dps) | `Sample.gx/gy/gz` |
 | `mx,my,mz` | mag (µT), MPU body frame | `Sensor.data` |

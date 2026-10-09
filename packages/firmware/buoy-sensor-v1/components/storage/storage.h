@@ -29,8 +29,9 @@ esp_err_t storage_init(void);
 bool storage_is_ready(void);
 
 /**
- * Open a new CSV session file under /sdcard/sessions/.
- * Writes a metadata comment + header row.
+ * Open the next CSV under /sdcard/sessions/SDCARD-YYYY-MM-DD-NNN.csv.
+ * Writes a metadata comment + header row. timestamp_ms is ms since open;
+ * absolute time is t0_unix_ms + timestamp_ms once the clock is set.
  * @param sample_hz nominal sampling rate recorded in the file header
  */
 esp_err_t storage_start_session(int sample_hz);

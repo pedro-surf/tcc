@@ -6,6 +6,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+#include "clock.h"
 #include "i2c_bus.h"
 #include "sensor.h"
 #include "storage.h"
@@ -23,9 +24,17 @@ static void sensor_task(void *arg)
     bool logging = false;
 
 #if ENABLE_SD
-    if (storage_is_ready() && storage_start_session(SAMPLE_HZ) == ESP_OK) {
-        logging = true;
-    } else {
+    if (storage_is_ready()) {
+        if (!clock_is_set()) {
+            ESP_LOGI(TAG, "waiting up to %d ms for time (SNTP or serial TIME)",
+                     CLOCK_WAIT_MS);
+            clock_wait(CLOCK_WAIT_MS);
+        }
+        if (storage_start_session(SAMPLE_HZ) == ESP_OK) {
+            logging = true;
+        }
+    }
+    if (!logging) {
         ESP_LOGW(TAG, "CSV session not started");
     }
 #endif
@@ -78,6 +87,7 @@ void app_main(void)
     ESP_LOGI(TAG, "buoy-sensor-v1: SD=%d MQTT=%d MAG=%d FUSION=%d GPS=%d  mqtt_every=%d",
              ENABLE_SD, ENABLE_MQTT, ENABLE_MAG, ENABLE_FUSION, ENABLE_GPS, MQTT_PUBLISH_EVERY_N);
 
+    clock_start();
     i2c_master_init();
 
     if (!sensor_init()) {

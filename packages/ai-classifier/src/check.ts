@@ -41,6 +41,15 @@ const csv = parseCsv(
 )
 assert(csv.length === 2 && csv[0].az === 9.8 && csv[1].timestamp === 100, 'csv parse')
 
+const buoyCsv = parseCsv(
+  [
+    '# schema=buoy-sensor-v1;version=3;sample_hz=10;units=g,dps,uT,rad,Pa,C,deg,m',
+    'timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,roll,pitch,yaw,pressure_pa,temperature_c,lat,lon,fix,alt,sat',
+    '0,0,0,1,1,0,0,0,0,0,0,0,0,101325,26,-27.6,-48.4,1,1.2,8',
+  ].join('\n'),
+)
+assert(buoyCsv.length === 1 && buoyCsv[0].az === 1 && buoyCsv[0].pressure === 101325, 'csv skips metadata comment')
+
 const mqtt = parseMqtt([
   { device: 'buoy', t_ms: 50, ax: 1, ay: 0, az: 9.8, gx: 0, gy: 0, gz: 3, roll: 0.1, pitch: 0.2, yaw: 0.3 },
 ])

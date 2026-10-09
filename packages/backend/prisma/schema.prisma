@@ -262,11 +262,19 @@ model Sample {
   gx        Float
   gy        Float
   gz        Float
-  lat       Float?
-  lon       Float?
-  fix       Int?
-  alt       Float?
-  sat       Int?
+  mx          Float?
+  my          Float?
+  mz          Float?
+  roll        Float?
+  pitch       Float?
+  yaw         Float?
+  pressure    Float?
+  temperature Float?
+  lat         Float?
+  lon         Float?
+  fix         Int?
+  alt         Float?
+  sat         Int?
 
   sessionId String
   session   Session @relation(fields: [sessionId], references: [id])
@@ -540,7 +548,7 @@ model SessionSensor {
 model Session {
   id          String   @id @default(uuid())
   userId      String
-  spotId      String
+  spotId      String?
   boardId     String?
   wetsuitId   String?
   date        DateTime
@@ -552,7 +560,7 @@ model Session {
   createdAt   DateTime @default(now())
 
   user        User @relation(fields: [userId], references: [id])
-  spot        Spot @relation(fields: [spotId], references: [id])
+  spot        Spot? @relation(fields: [spotId], references: [id])
   board       Board? @relation(fields: [boardId], references: [id])
   wetsuit     Wetsuit? @relation(fields: [wetsuitId], references: [id])
 

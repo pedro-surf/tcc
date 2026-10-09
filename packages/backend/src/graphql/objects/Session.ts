@@ -4,7 +4,7 @@ export const SessionRef = builder.prismaObject('Session', {
   fields: (t) => ({
     id: t.exposeID('id'),
     userId: t.exposeString('userId'),
-    spotId: t.exposeString('spotId'),
+    spotId: t.exposeString('spotId', { nullable: true }),
     boardId: t.exposeString('boardId', { nullable: true }),
     wetsuitId: t.exposeString('wetsuitId', { nullable: true }),
     date: t.expose('date', { type: 'DateTime' }),
@@ -15,7 +15,7 @@ export const SessionRef = builder.prismaObject('Session', {
     notes: t.exposeString('notes', { nullable: true }),
     createdAt: t.expose('createdAt', { type: 'DateTime' }),
     user: t.relation('user'),
-    spot: t.relation('spot'),
+    spot: t.relation('spot', { nullable: true }),
     board: t.relation('board', { nullable: true }),
     wetsuit: t.relation('wetsuit', { nullable: true }),
     sessionSensors: t.relation('sessionSensors'),

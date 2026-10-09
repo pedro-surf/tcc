@@ -1,44 +1,70 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import SessionDetail from '../../SessionDetails'
-import type { Session } from '../../types'
-import { loadCbor } from '../../utils/loadCbor'
+import { useAuth } from '../../auth/AuthContext'
+import type { Sample, Session } from '../../types'
+import { loadSessionFiles, sessionFromSamples } from '../../utils/loadSessionFile'
 import { fakeSessions } from '../../utils/fakeSessions'
+import { ImportCutModal } from './ImportCutModal'
+import {
+  fetchSavedSession,
+  importSession,
+  inferIntervalMs,
+  samplesFromSaved,
+  useSavedSessions,
+} from './api'
+
+type ImportDraft = {
+  label: string
+  samples: Sample[]
+  intervalMs: number
+}
 
 export function SessionsPage() {
+  const { isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
+  const savedSessions = useSavedSessions(isAuthenticated)
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [secondSelectedSession, setSecondSelectedSession] =
     useState<Session | null>(null)
   const [mode, setMode] = useState<'compare' | 'single'>('single')
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importDraft, setImportDraft] = useState<ImportDraft | null>(null)
+  const [openingId, setOpeningId] = useState<string | null>(null)
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const {
-      data: samples,
-      results,
-      intervalMs,
-      manuevers,
-      predictions,
-      activities,
-      classifierSlot,
-    } = await loadCbor(file)
-    const payload = {
-      id: `Imported-${file.name}`,
-      samples,
-      results,
-      intervalMs,
-      manuevers,
-      predictions,
-      activities,
-      classifierSlot,
+    const files = [...(e.target.files ?? [])]
+    e.target.value = ''
+    if (files.length === 0) return
+    try {
+      const { data: samples, intervalMs, label, skipped } = await loadSessionFiles(files)
+      if (!samples?.length) return
+      setImportError(
+        skipped.length
+          ? `Skipped ${skipped.map((item) => `${item.name}: ${item.reason}`).join('; ')}`
+          : null,
+      )
+      setImportDraft({ label, samples, intervalMs })
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Import failed')
     }
-    if (samples?.length) {
-      if (selectedSession) {
-        setSecondSelectedSession(payload)
-      } else {
-        setSelectedSession(payload)
-      }
-    }
+  }
+
+  const acceptImport = async (session: Session, startedAtMs: number) => {
+    const date =
+      startedAtMs > 1_000_000_000_000
+        ? new Date(startedAtMs).toISOString()
+        : new Date().toISOString()
+    await importSession({
+      notes: session.id,
+      date,
+      samples: session.samples,
+      maneuvers: session.manuevers,
+    })
+    await queryClient.invalidateQueries({ queryKey: ['SavedSessions'] })
+    setImportDraft(null)
+    if (selectedSession) setSecondSelectedSession(session)
+    else setSelectedSession(session)
   }
 
   const handleSelectSession = (s: Session) => {
@@ -47,6 +73,26 @@ export function SessionsPage() {
       return
     }
     setSelectedSession(s)
+  }
+
+  const openSaved = async (id: string) => {
+    setOpeningId(id)
+    setImportError(null)
+    try {
+      const row = await fetchSavedSession(id)
+      if (!row || row.samples.length === 0) {
+        setImportError('Saved session has no samples')
+        return
+      }
+      const samples = samplesFromSaved(row.samples)
+      handleSelectSession(
+        sessionFromSamples(row.notes || row.id, samples, inferIntervalMs(samples)),
+      )
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Could not open session')
+    } finally {
+      setOpeningId(null)
+    }
   }
 
   const hideInputs =
@@ -60,14 +106,49 @@ export function SessionsPage() {
           Session {selectedSession.id} — {selectedSession.samples.length} samples
         </p>
       ) : null}
+      {importError ? <p className="app-meta">{importError}</p> : null}
 
       {!hideInputs && (
         <>
           <div className="d-flex flex-clmn">
-            <h2>Import CBOR file</h2>
+            <h2>Import session file</h2>
+            <p className="app-meta">One CBOR, or several CSVs joined in order</p>
             <div>
-              <input type="file" accept=".cbor" onChange={handleImportFile} />
+              <input
+                type="file"
+                accept=".cbor,.csv,text/csv"
+                multiple
+                onChange={handleImportFile}
+              />
             </div>
+          </div>
+          <div className="d-flex flex-clmn">
+            <h2>Saved sessions</h2>
+            {!isAuthenticated ? (
+              <p className="app-meta">Sign in to save a session and see it here.</p>
+            ) : savedSessions.isLoading ? (
+              <p className="app-meta">Loading saved sessions…</p>
+            ) : savedSessions.isError ? (
+              <p className="app-meta">
+                {savedSessions.error instanceof Error
+                  ? savedSessions.error.message
+                  : 'Could not load saved sessions'}
+              </p>
+            ) : savedSessions.data?.length ? (
+              savedSessions.data.map((session) => (
+                <button
+                  className="mb-2"
+                  key={session.id}
+                  disabled={openingId === session.id}
+                  onClick={() => openSaved(session.id)}
+                >
+                  {session.notes || 'Session'} — {new Date(session.date).toLocaleString()}
+                  {session.durationMin > 0 ? ` · ${session.durationMin} min` : ''}
+                </button>
+              ))
+            ) : (
+              <p className="app-meta">No saved sessions yet.</p>
+            )}
           </div>
           <div className="d-flex flex-clmn">
             <h2>Mock sessions</h2>
@@ -101,6 +182,18 @@ export function SessionsPage() {
       {mode === 'single' && selectedSession && (
         <SessionDetail session={selectedSession} />
       )}
+      {importDraft ? (
+        <ImportCutModal
+          label={importDraft.label}
+          samples={importDraft.samples}
+          onCancel={() => setImportDraft(null)}
+          buildSession={(samples) =>
+            sessionFromSamples(importDraft.label, samples, importDraft.intervalMs)
+          }
+          onConfirm={acceptImport}
+        />
+      ) : null}
+
       {mode === 'compare' && selectedSession && secondSelectedSession && (
         <div className="d-flex">
           <SessionDetail

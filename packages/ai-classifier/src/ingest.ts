@@ -120,9 +120,10 @@ export function parseMqtt(input: unknown): InertialSample[] {
 
 export function parseCsv(text: string): InertialSample[] {
   const lines = text
+    .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter((line) => line.length > 0)
+    .filter((line) => line.length > 0 && !line.startsWith('#'))
   if (lines.length < 2) throw new Error('csv must include a header and one row')
 
   const header = lines[0].split(',').map((cell) => cell.trim().toLowerCase())

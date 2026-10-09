@@ -1,5 +1,7 @@
 #include "storage.h"
 
+#include "clock.h"
+#include "config.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_vfs_fat.h"
@@ -8,21 +10,37 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
 
 static const char *TAG = "storage";
 
-/* Flush to SD every N rows to limit wear/latency while keeping data durable. */
-#define STORAGE_FLUSH_EVERY_N 20
+#define META_PATH STORAGE_MOUNT_POINT "/meta.txt"
+#define BOOTLOG_PATH STORAGE_MOUNT_POINT "/bootlog.csv"
 
 static sdmmc_card_t *s_card;
 static FILE *s_file;
 static bool s_ready;
 static char s_path[96];
+static char s_file_name[40];
+static char s_seq_day[16];
 static uint32_t s_rows_since_flush;
 static int64_t s_session_start_us;
+static uint32_t s_boot_count;
+static uint32_t s_next_seq;
+static int s_year;
+static int s_month;
+static int s_day;
+static uint32_t s_seq;
+static int s_sample_hz;
+static int64_t s_t0_unix_ms;
+static bool s_time_noted;
+static char s_time_source[8];
+static long s_header_len;
 
 static const char *CSV_HEADER =
     "timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,roll,pitch,yaw,pressure_pa,temperature_c,lat,lon,fix,alt,sat\n";
@@ -69,6 +87,250 @@ static void log_dir(const char *path)
         ESP_LOGI(TAG, "  (empty)");
     }
     closedir(dir);
+}
+
+static void load_meta(void)
+{
+    s_boot_count = 0;
+    s_next_seq = 1;
+    s_seq_day[0] = '\0';
+
+    FILE *file = fopen(META_PATH, "r");
+    if (!file) {
+        return;
+    }
+
+    char line[80];
+    while (fgets(line, sizeof(line), file)) {
+        unsigned value = 0;
+        char day[16];
+        if (sscanf(line, "boot_count=%u", &value) == 1) {
+            s_boot_count = value;
+        } else if (sscanf(line, "next_seq=%u", &value) == 1) {
+            s_next_seq = value == 0 ? 1 : value;
+        } else if (sscanf(line, "seq_day=%15s", day) == 1) {
+            snprintf(s_seq_day, sizeof(s_seq_day), "%s", day);
+        }
+    }
+    fclose(file);
+}
+
+static esp_err_t save_meta(void)
+{
+    FILE *file = fopen(META_PATH, "w");
+    if (!file) {
+        ESP_LOGE(TAG, "meta write failed (errno=%d)", errno);
+        return ESP_FAIL;
+    }
+
+    fprintf(file, "boot_count=%" PRIu32 "\nseq_day=%s\nnext_seq=%" PRIu32 "\n",
+            s_boot_count, s_seq_day, s_next_seq);
+    if (fflush(file) != 0 || fsync(fileno(file)) != 0) {
+        ESP_LOGE(TAG, "meta sync failed (errno=%d)", errno);
+        fclose(file);
+        return ESP_FAIL;
+    }
+    fclose(file);
+    return ESP_OK;
+}
+
+static void append_bootlog(const char *event)
+{
+    struct stat st;
+    bool exists = stat(BOOTLOG_PATH, &st) == 0;
+
+    FILE *file = fopen(BOOTLOG_PATH, "a");
+    if (!file) {
+        ESP_LOGW(TAG, "bootlog open failed (errno=%d)", errno);
+        return;
+    }
+
+    if (!exists) {
+        fputs("boot,session,file,event,uptime_ms,t0_unix_ms,time_source\n", file);
+    }
+
+    int64_t uptime_ms = esp_timer_get_time() / 1000;
+    fprintf(file, "%" PRIu32 ",%" PRIu32 ",%s,%s,%lld,%lld,%s\n",
+            s_boot_count, s_seq, s_file_name, event,
+            (long long)uptime_ms, (long long)s_t0_unix_ms, s_time_source);
+
+    if (fflush(file) != 0 || fsync(fileno(file)) != 0) {
+        ESP_LOGW(TAG, "bootlog sync failed (errno=%d)", errno);
+    }
+    fclose(file);
+}
+
+static int format_header(char *out, size_t cap)
+{
+    return snprintf(
+        out, cap,
+        "# schema=buoy-sensor-v1;version=4;sample_hz=%03d;"
+        "file=SDCARD-%04d-%02d-%02d-%03" PRIu32 ";boot=%06" PRIu32 ";"
+        "t0_unix_ms=%013lld;time_source=%.4s;units=g,dps,uT,rad,Pa,C,deg,m\n",
+        s_sample_hz, s_year, s_month, s_day, s_seq, s_boot_count,
+        (long long)s_t0_unix_ms, s_time_source);
+}
+
+static esp_err_t rewrite_header(void)
+{
+    char header[224];
+    int n = format_header(header, sizeof(header));
+    if (n <= 0 || n >= (int)sizeof(header) || (s_header_len > 0 && n != s_header_len)) {
+        ESP_LOGE(TAG, "header length changed (%d vs %ld)", n, s_header_len);
+        return ESP_FAIL;
+    }
+
+    if (fflush(s_file) != 0) {
+        return ESP_FAIL;
+    }
+    long pos = ftell(s_file);
+    if (pos < 0 || fseek(s_file, 0, SEEK_SET) != 0) {
+        return ESP_FAIL;
+    }
+    if (fwrite(header, 1, (size_t)n, s_file) != (size_t)n) {
+        return ESP_FAIL;
+    }
+    if (fflush(s_file) != 0 || fsync(fileno(s_file)) != 0) {
+        return ESP_FAIL;
+    }
+    if (fseek(s_file, pos, SEEK_SET) != 0) {
+        return ESP_FAIL;
+    }
+    s_header_len = n;
+    return ESP_OK;
+}
+
+static void capture_clock(void)
+{
+    if (!clock_is_set()) {
+        s_t0_unix_ms = 0;
+        strncpy(s_time_source, "none", sizeof(s_time_source));
+        s_time_source[sizeof(s_time_source) - 1] = '\0';
+        return;
+    }
+
+    int64_t elapsed_ms = (esp_timer_get_time() - s_session_start_us) / 1000;
+    if (elapsed_ms < 0) {
+        elapsed_ms = 0;
+    }
+    int64_t now_ms = clock_unix_ms();
+    s_t0_unix_ms = now_ms > elapsed_ms ? now_ms - elapsed_ms : now_ms;
+    strncpy(s_time_source, clock_source_name(clock_source()), sizeof(s_time_source));
+    s_time_source[sizeof(s_time_source) - 1] = '\0';
+}
+
+static bool format_session_path(int year, int month, int day, uint32_t seq,
+                                char *name, size_t name_n, char *path, size_t path_n)
+{
+    int nn = snprintf(name, name_n, "SDCARD-%04d-%02d-%02d-%03" PRIu32 ".csv",
+                      year, month, day, seq);
+    int np = snprintf(path, path_n, STORAGE_SESSIONS_DIR "/%s", name);
+    return nn > 0 && np > 0 && (size_t)nn < name_n && (size_t)np < path_n;
+}
+
+static void date_from_unix_ms(int64_t unix_ms, int *year, int *month, int *day)
+{
+    if (unix_ms <= 0) {
+        *year = 0;
+        *month = 0;
+        *day = 0;
+        return;
+    }
+    time_t sec = (time_t)(unix_ms / 1000);
+    struct tm tm;
+    gmtime_r(&sec, &tm);
+    *year = tm.tm_year + 1900;
+    *month = tm.tm_mon + 1;
+    *day = tm.tm_mday;
+}
+
+/* Pick the next free SDCARD-YYYY-MM-DD-NNN name and remember it. */
+static esp_err_t claim_session_name(int year, int month, int day)
+{
+    char day_key[16];
+    snprintf(day_key, sizeof(day_key), "%04d-%02d-%02d", year, month, day);
+
+    uint32_t seq = 1;
+    if (strcmp(s_seq_day, day_key) == 0 && s_next_seq > 0) {
+        seq = s_next_seq;
+    }
+
+    char name[40];
+    char path[96];
+    for (int guard = 0; guard < 999; guard++) {
+        if (!format_session_path(year, month, day, seq, name, sizeof(name), path, sizeof(path))) {
+            return ESP_FAIL;
+        }
+        struct stat st;
+        if (stat(path, &st) != 0) {
+            snprintf(s_seq_day, sizeof(s_seq_day), "%s", day_key);
+            snprintf(s_file_name, sizeof(s_file_name), "%s", name);
+            snprintf(s_path, sizeof(s_path), "%s", path);
+            s_year = year;
+            s_month = month;
+            s_day = day;
+            s_seq = seq;
+            s_next_seq = seq + 1;
+            return ESP_OK;
+        }
+        seq++;
+    }
+    ESP_LOGE(TAG, "no free session name for %s", day_key);
+    return ESP_FAIL;
+}
+
+/* Close, rename, and reopen so a late clock fix can replace 0000-00-00. */
+static esp_err_t reseat_session_file(int year, int month, int day)
+{
+    char old_path[96];
+    char old_name[40];
+    char old_day_key[16];
+    int old_year = s_year;
+    int old_month = s_month;
+    int old_mday = s_day;
+    uint32_t old_seq = s_seq;
+    uint32_t old_next = s_next_seq;
+    snprintf(old_path, sizeof(old_path), "%s", s_path);
+    snprintf(old_name, sizeof(old_name), "%s", s_file_name);
+    snprintf(old_day_key, sizeof(old_day_key), "%s", s_seq_day);
+
+    if (!s_file || fflush(s_file) != 0) {
+        return ESP_FAIL;
+    }
+    fclose(s_file);
+    s_file = NULL;
+
+    if (claim_session_name(year, month, day) != ESP_OK) {
+        s_file = fopen(old_path, "r+");
+        if (s_file) {
+            fseek(s_file, 0, SEEK_END);
+        }
+        return ESP_FAIL;
+    }
+
+    if (rename(old_path, s_path) != 0) {
+        ESP_LOGE(TAG, "rename %s -> %s failed (errno=%d)", old_path, s_path, errno);
+        snprintf(s_path, sizeof(s_path), "%s", old_path);
+        snprintf(s_file_name, sizeof(s_file_name), "%s", old_name);
+        snprintf(s_seq_day, sizeof(s_seq_day), "%s", old_day_key);
+        s_year = old_year;
+        s_month = old_month;
+        s_day = old_mday;
+        s_seq = old_seq;
+        s_next_seq = old_next;
+        s_file = fopen(old_path, "r+");
+        if (s_file) {
+            fseek(s_file, 0, SEEK_END);
+        }
+        return ESP_FAIL;
+    }
+
+    s_file = fopen(s_path, "r+");
+    if (!s_file || fseek(s_file, 0, SEEK_END) != 0) {
+        ESP_LOGE(TAG, "reopen %s failed (errno=%d)", s_path, errno);
+        return ESP_FAIL;
+    }
+    return ESP_OK;
 }
 
 esp_err_t storage_init(void)
@@ -118,6 +380,14 @@ esp_err_t storage_init(void)
         return ret;
     }
 
+    load_meta();
+    s_boot_count++;
+    if (save_meta() != ESP_OK) {
+        ESP_LOGW(TAG, "could not persist boot count");
+    }
+    ESP_LOGI(TAG, "boot %" PRIu32 ", seq day %s next %" PRIu32,
+             s_boot_count, s_seq_day[0] ? s_seq_day : "(none)", s_next_seq);
+
     s_ready = true;
     ESP_LOGI(TAG, "SD ready at %s", STORAGE_MOUNT_POINT);
     return ESP_OK;
@@ -139,11 +409,18 @@ esp_err_t storage_start_session(int sample_hz)
     }
 
     s_session_start_us = esp_timer_get_time();
-    int64_t boot_ms = s_session_start_us / 1000;
+    s_sample_hz = sample_hz;
+    s_time_noted = false;
+    s_header_len = 0;
+    capture_clock();
 
-    snprintf(s_path, sizeof(s_path),
-             STORAGE_SESSIONS_DIR "/session_%lld.csv",
-             (long long)boot_ms);
+    int year = 0;
+    int month = 0;
+    int day = 0;
+    date_from_unix_ms(s_t0_unix_ms, &year, &month, &day);
+    if (claim_session_name(year, month, day) != ESP_OK) {
+        return ESP_FAIL;
+    }
 
     s_file = fopen(s_path, "w");
     if (!s_file) {
@@ -159,16 +436,36 @@ esp_err_t storage_start_session(int sample_hz)
         return ESP_FAIL;
     }
 
-    /* Comment line keeps the file parseable while carrying import metadata. */
-    fprintf(s_file,
-            "# schema=buoy-sensor-v1;version=3;sample_hz=%d;"
-            "device=buoy-sensor-v1;units=g,dps,uT,rad,Pa,C,deg,m\n",
-            sample_hz);
+    char header[224];
+    int header_n = format_header(header, sizeof(header));
+    if (header_n <= 0 || header_n >= (int)sizeof(header)) {
+        ESP_LOGE(TAG, "header format failed");
+        fclose(s_file);
+        s_file = NULL;
+        return ESP_FAIL;
+    }
+    if (fwrite(header, 1, (size_t)header_n, s_file) != (size_t)header_n) {
+        ESP_LOGE(TAG, "header write failed");
+        fclose(s_file);
+        s_file = NULL;
+        return ESP_FAIL;
+    }
+    s_header_len = header_n;
     fputs(CSV_HEADER, s_file);
-    fflush(s_file);
+    if (storage_flush() != ESP_OK) {
+        ESP_LOGE(TAG, "header not synced to card");
+        storage_close_session();
+        return ESP_FAIL;
+    }
 
-    s_rows_since_flush = 0;
-    ESP_LOGI(TAG, "Session CSV opened: %s", s_path);
+    if (save_meta() != ESP_OK) {
+        ESP_LOGW(TAG, "could not persist next session id");
+    }
+    s_time_noted = s_t0_unix_ms > 0;
+    append_bootlog("start");
+
+    ESP_LOGI(TAG, "Session CSV opened: %s boot=%" PRIu32 " t0=%lld source=%s (fsync every %d rows)",
+             s_path, s_boot_count, (long long)s_t0_unix_ms, s_time_source, SD_FLUSH_EVERY_N);
     return ESP_OK;
 }
 
@@ -178,7 +475,27 @@ esp_err_t storage_log_sample(const sensor_data_t *sample)
         return ESP_ERR_INVALID_STATE;
     }
 
-    /* Prefer session-relative ms so importers can treat t0 as session start. */
+    if (!s_time_noted && clock_is_set()) {
+        capture_clock();
+        int year = 0;
+        int month = 0;
+        int day = 0;
+        date_from_unix_ms(s_t0_unix_ms, &year, &month, &day);
+        if (s_year == 0 && year > 0 && reseat_session_file(year, month, day) != ESP_OK) {
+            ESP_LOGW(TAG, "could not rename session to dated name");
+        }
+        if (rewrite_header() == ESP_OK) {
+            s_time_noted = true;
+            if (save_meta() != ESP_OK) {
+                ESP_LOGW(TAG, "could not persist session sequence");
+            }
+            append_bootlog("time");
+            ESP_LOGI(TAG, "session t0 set to %lld via %s (%s)",
+                     (long long)s_t0_unix_ms, s_time_source, s_file_name);
+        }
+    }
+
+    /* Milliseconds since this session opened. Absolute time is t0_unix_ms + this. */
     int64_t timestamp_ms = (sample->timestamp - s_session_start_us) / 1000;
     if (timestamp_ms < 0) {
         timestamp_ms = 0;
@@ -202,7 +519,7 @@ esp_err_t storage_log_sample(const sensor_data_t *sample)
     }
 
     s_rows_since_flush++;
-    if (s_rows_since_flush >= STORAGE_FLUSH_EVERY_N) {
+    if (s_rows_since_flush >= SD_FLUSH_EVERY_N) {
         return storage_flush();
     }
     return ESP_OK;
@@ -215,6 +532,12 @@ esp_err_t storage_flush(void)
     }
     if (fflush(s_file) != 0) {
         ESP_LOGE(TAG, "fflush failed (errno=%d)", errno);
+        return ESP_FAIL;
+    }
+    /* fflush only empties the libc buffer. fsync writes the FAT size, so the
+     * file is not 0 bytes if the card is pulled before fclose. */
+    if (fsync(fileno(s_file)) != 0) {
+        ESP_LOGE(TAG, "fsync failed (errno=%d)", errno);
         return ESP_FAIL;
     }
     s_rows_since_flush = 0;
